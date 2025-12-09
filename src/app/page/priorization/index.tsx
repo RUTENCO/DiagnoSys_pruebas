@@ -163,8 +163,8 @@ export default function PriorityQuadrants() {
 
   return (
     <div className="p-6 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Zoom <span className="text-blue-600">Out:</span> Prioritization Matrix
+      <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
+        Zoom Out: Prioritization Matrix
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>

@@ -165,8 +165,8 @@ export default function ZoomOutCategorization() {
 
   return (
     <div className="p-6 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Zoom <span className="text-blue-600">out:</span> categorization
+      <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
+          Zoom Out: Categorization
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -204,7 +204,7 @@ export default function ZoomOutCategorization() {
           <div className="flex flex-col gap-6">
             {(["opportunities", "needs", "problems"] as const).map((key) => (
               <div key={key}>
-                <h3 className="text-lg font-bold uppercase mb-2 text-gray-800">{key}</h3>
+                <h3 className="text-lg font-bold uppercase mb-2 text-[#2E6347]">{key}</h3>
                 <Droppable droppableId={key}>
                   {(provided) => (
                     <div

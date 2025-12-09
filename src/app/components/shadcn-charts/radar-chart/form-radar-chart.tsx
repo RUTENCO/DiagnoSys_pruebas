@@ -100,9 +100,6 @@ function RadarChartSkeleton({ title, description, className }: { title: string, 
 }
 
 export function FormRadarChart({ title, description, data = [], className, isLoading = false }: FormRadarChartProps & { isLoading?: boolean }) {
-    // Counter for unique keys
-    let dotCounter = 0;
-    
     // Show skeleton while loading
     if (isLoading) {
         return <RadarChartSkeleton title={title} description={description} className={className} />;
@@ -141,25 +138,25 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
 
     // Para casos con menos de 3 categorías, necesitamos al menos 3 puntos para formar un polígono
     if (data.length === 1) {
-        // Para una sola categoría, creamos 2 puntos adicionales con valores mínimos
+        // Para una sola categoría, mantenemos el punto real y agregamos 2 puntos en posiciones diferentes
         const realPoint = chartData[0];
         const maxScore = realPoint.maxScore;
         
         chartData = [
-            realPoint, // El punto real con datos
+            realPoint, // El punto real con datos en la primera posición
             {
-                category: '', // Punto invisible 1
-                originalCategory: '', // Sin categoría original
-                score: 0.1, // Valor mínimo visible
+                category: '', // Punto invisible 1 en segunda posición
+                originalCategory: '', 
+                score: 0, // Valor 0 para que esté en el centro
                 maxScore: maxScore,
-                percentage: Math.round((0.1 / maxScore) * 100)
+                percentage: 0
             },
             {
-                category: '', // Punto invisible 2  
-                originalCategory: '', // Sin categoría original
-                score: 0.1, // Valor mínimo visible
+                category: '', // Punto invisible 2 en tercera posición  
+                originalCategory: '', 
+                score: 0, // Valor 0 para que esté en el centro
                 maxScore: maxScore,
-                percentage: Math.round((0.1 / maxScore) * 100)
+                percentage: 0
             }
         ];
     } else if (data.length === 2) {
@@ -168,9 +165,9 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
         chartData.push({
             category: '', // Categoría vacía (no se mostrará la etiqueta)
             originalCategory: '', // Sin categoría original
-            score: 0.1, // Valor mínimo visible para formar el polígono
+            score: 0, // Valor 0 para formar el polígono
             maxScore: maxScore,
-            percentage: Math.round((0.1 / maxScore) * 100)
+            percentage: 0
         });
     }
 
@@ -184,6 +181,74 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
             color: "#6B7280", // Gris para la línea de referencia
         },
     } satisfies ChartConfig;
+
+    // Componente personalizado para los puntos del radar de score (azul)
+    const CustomScoreDot = (props: { cx?: number; cy?: number; payload?: { category: string; score: number; maxScore: number; percentage: number }; index?: number }) => {
+        const { cx, cy, payload, index } = props;
+
+        // Si la categoría es vacía -> no renderizamos nada
+        if (!payload?.category || payload.category.trim() === '') {
+            return null;
+        }
+
+        // Validaciones seguras de coordenadas
+        const validCx = typeof cx === 'number' && !Number.isNaN(cx) ? cx : 0;
+        const validCy = typeof cy === 'number' && !Number.isNaN(cy) ? cy : 0;
+
+        // Tamaño del punto según número de categorías
+        const pointSize =
+            (Array.isArray(data) && data.length === 1) ? 12 :
+            (Array.isArray(data) && data.length === 2) ? 8 :
+            (Array.isArray(data) && data.length > 15) ? 4 :
+            (Array.isArray(data) && data.length > 10) ? 5 : 6;
+
+        return (
+            <circle
+                cx={validCx}
+                cy={validCy}
+                r={pointSize}
+                fill="#3B82F6"
+                stroke="#ffffff"
+                strokeWidth={2}
+                style={{ pointerEvents: 'none' }}
+                key={`score-dot-${payload?.category || 'single'}-${index}`}
+            />
+        );
+    };
+
+    // Componente personalizado para los puntos del radar de maxScore (verde)
+    const CustomMaxScoreDot = (props: { cx?: number; cy?: number; payload?: { category: string; score: number; maxScore: number; percentage: number }; index?: number }) => {
+        const { cx, cy, payload, index } = props;
+
+        // Si la categoría es vacía -> no renderizamos nada
+        if (!payload?.category || payload.category.trim() === '') {
+            return null;
+        }
+
+        // Validaciones seguras de coordenadas
+        const validCx = typeof cx === 'number' && !Number.isNaN(cx) ? cx : 0;
+        const validCy = typeof cy === 'number' && !Number.isNaN(cy) ? cy : 0;
+
+        // Tamaño del punto según número de categorías
+        const pointSize =
+            (Array.isArray(data) && data.length === 1) ? 10 :
+            (Array.isArray(data) && data.length === 2) ? 6 :
+            (Array.isArray(data) && data.length > 15) ? 3 :
+            (Array.isArray(data) && data.length > 10) ? 4 : 5;
+
+        return (
+            <circle
+                cx={validCx}
+                cy={validCy}
+                r={pointSize}
+                fill="#2E6347"
+                stroke="#ffffff"
+                strokeWidth={1.5}
+                style={{ pointerEvents: 'none' }}
+                key={`max-score-dot-${payload?.category || 'single'}-${index}`}
+            />
+        );
+    };
 
     return (
         <Card className={`${className} green-interactive to-gray-50 border border-gray-200 shadow-sm`}>
@@ -324,41 +389,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                     fill="#3B82F6"
                                     fillOpacity={0.2}
                                     strokeWidth={data.length > 15 ? 2 : 3}
-                                    dot={(props: { cx: number; cy: number; payload: { category: string; score: number; maxScore: number; percentage: number } }) => {
-                                        const { cx, cy, payload } = props;
-                                        const currentDotId = dotCounter++;
-                                        
-                                        // Validar coordenadas
-                                        const validCx = isNaN(cx) ? 0 : cx;
-                                        const validCy = isNaN(cy) ? 0 : cy;
-                                        
-                                        // Si la categoría está vacía (punto invisible), renderizar transparente
-                                        if (!payload?.category || payload.category.trim() === '') {
-                                            return (
-                                                <circle
-                                                    key={`invisible-dot-${currentDotId}`}
-                                                    cx={validCx}
-                                                    cy={validCy}
-                                                    r={0}
-                                                    fill="transparent"
-                                                    stroke="transparent"
-                                                />
-                                            );
-                                        }
-                                        
-                                        // Renderizar punto normal para categorías reales
-                                        return (
-                                            <circle
-                                                key={`visible-dot-${currentDotId}-${payload?.category || 'unknown'}`}
-                                                cx={validCx}
-                                                cy={validCy}
-                                                r={data.length > 15 ? 4 : data.length > 10 ? 5 : 6}
-                                                fill="#3B82F6"
-                                                stroke="#fff"
-                                                strokeWidth={2}
-                                            />
-                                        );
-                                    }}
+                                    dot={<CustomScoreDot />}
                                 />
                                 <Radar
                                     dataKey="maxScore"
@@ -367,7 +398,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                     strokeDasharray="5 5"
                                     strokeOpacity={0.6}
                                     strokeWidth={data.length > 15 ? 1 : 2}
-                                    dot={false}
+                                    dot={<CustomMaxScoreDot />}
                                 />
                             </RadarChart>
                         </ResponsiveContainer>

@@ -41,7 +41,7 @@ export default function Sidebar() {
       { href: "/dashboard/consultant/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
       { href: "/dashboard/consultant/categorization", label: "Categorization", icon: <LayoutIcon /> },
       { href: "/dashboard/consultant/prioritization", label: "Prioritization", icon: <ListBulletIcon /> },
-      { href: "/dashboard/consultant/organizations", label: "Organizations", icon: <LayoutIcon /> },
+      //{ href: "/dashboard/consultant/organizations", label: "Organizations", icon: <LayoutIcon /> },
       { href: "/dashboard/consultant/reports", label: "Reports", icon: <ZoomOutIcon /> },
     ],
     organization: [

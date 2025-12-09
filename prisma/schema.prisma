@@ -1,6 +1,9 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,7 +19,7 @@ datasource db {
 model Role {
   id          Int      @id @default(autoincrement())
   name        String   @unique // "admin", "consultant", "organization"
-  displayName String   // "Administrator", "Consultant", "Organization"
+  displayName String // "Administrator", "Consultant", "Organization"
   createdAt   DateTime @default(now())
   users       User[]
 }
@@ -36,7 +39,7 @@ model User {
   audits Audit[]
 
   // Para organizaciones: empresa que representan
-  organizationId Int?
+  organizationId Int? // Solo para rol "organization"
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Formularios personalizados creados por este usuario
@@ -48,12 +51,6 @@ model User {
   opportunities Opportunity[]
   needs         Need[]
   problems      Problem[]
-
-  // Nuevas prioridades
-  highPriorities     HighPriority[]
-  mediumPriorities   MediumPriority[]
-  lowPriorities      LowPriority[]
-  mediumPriorities2  MediumPriority2[]
 }
 
 model ResetToken {
@@ -82,13 +79,15 @@ model Form {
   id          Int        @id @default(autoincrement())
   name        String     @unique
   description String?
-  tag         String?
+  tag         String? // Tag for form classification (Skills, Capabilities, etc.)
   moduleId    Int
   module      Module     @relation(fields: [moduleId], references: [id])
   categories  Category[]
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  isPublished Boolean    @default(false)
+  isPublished Boolean    @default(false) // Solo formularios publicados son visibles
+
+  // Formularios personalizados basados en este formulario base
   personalizedForms PersonalizedForm[]
 }
 
@@ -103,25 +102,29 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users  User[]
+  // Usuarios que representan esta organización
+  users User[]
+
+  // Auditorías realizadas a esta organización
   audits Audit[]
 }
 
 model Audit {
   id             Int      @id @default(autoincrement())
-  name           String
+  name           String // "Auditoría Q1 2024", "Evaluación inicial", etc.
   description    String?
-  consultantId   Int
-  organizationId Int
+  consultantId   Int // Usuario consultor que realiza la auditoría
+  organizationId Int // Empresa auditada
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   consultant   User         @relation(fields: [consultantId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
 
+  // Formularios personalizados creados en esta auditoría
   personalizedForms PersonalizedForm[]
 
-  @@unique([consultantId, organizationId, name])
+  @@unique([consultantId, organizationId, name]) // No duplicar nombre por consultor/empresa
 }
 
 // =============================
@@ -130,17 +133,22 @@ model Audit {
 
 model Report {
   id        Int      @id @default(autoincrement())
-  name      String
-  version   Int      @default(1)
-  userId    Int
+  name      String   // Report name given by organization
+  version   Int      @default(1) // Auto-incremented version for organization
+  userId    Int      // Organization user who created the report
   user      User     @relation("ReportOwner", fields: [userId], references: [id])
+  
+  // Report status
   isCompleted Boolean   @default(false)
   completedAt DateTime?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Personalized forms associated with this report
   personalizedForms PersonalizedForm[]
 
-  @@unique([userId, name, version])
+  @@unique([userId, name, version]) // Unique name and version per organization
 }
 
 // =============================
@@ -149,67 +157,79 @@ model Report {
 
 model PersonalizedForm {
   id   Int    @id @default(autoincrement())
-  name String
+  name String // Nombre personalizado o copia del formulario base
 
-  baseFormId Int
+  // Relación con formulario base
+  baseFormId Int // Formulario base del cual deriva
   baseForm   Form @relation(fields: [baseFormId], references: [id])
 
-  userId Int
+  // Propietario del formulario personalizado
+  userId Int // Usuario que personalizó (Consultor u Organización)
   user   User @relation("PersonalizedFormOwner", fields: [userId], references: [id])
 
-  auditId Int?
+  // Para consultores: auditoría a la que pertenece
+  auditId Int? // Null para organizaciones, obligatorio para consultores
   audit   Audit? @relation(fields: [auditId], references: [id])
 
-  reportId Int?
+  // Para organizaciones: reporte al que pertenece
+  reportId Int? // Null para consultores, obligatorio para organizaciones
   report   Report? @relation(fields: [reportId], references: [id])
 
+  // Estado del formulario
   isCompleted Boolean   @default(false)
   completedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Categorías personalizadas
   personalizedCategories PersonalizedCategory[]
 
-  @@unique([userId, baseFormId, auditId, reportId])
+  @@unique([userId, baseFormId, auditId, reportId]) // Un formulario personalizado por usuario/base/auditoría/reporte
 }
 
 model PersonalizedCategory {
   id   Int    @id @default(autoincrement())
-  name String
+  name String // Copia del nombre de la categoría base
 
-  baseCategoryId Int
+  // Relación con categoría base
+  baseCategoryId Int // Categoría base del cual deriva
   baseCategory   Category @relation("BaseCategory", fields: [baseCategoryId], references: [id])
 
+  // Formulario personalizado al que pertenece
   personalizedFormId Int
   personalizedForm   PersonalizedForm @relation(fields: [personalizedFormId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Items personalizados
   personalizedItems PersonalizedItem[]
 
-  @@unique([personalizedFormId, baseCategoryId])
+  @@unique([personalizedFormId, baseCategoryId]) // Una categoría personalizada por formulario/base
 }
 
 model PersonalizedItem {
   id       Int     @id @default(autoincrement())
-  name     String
-  isCustom Boolean @default(false)
+  name     String // Nombre del item (copiado de base o personalizado)
+  isCustom Boolean @default(false) // true si es agregado por el usuario
 
-  baseItemId Int?
+  // Relación con item base (null si es personalizado)
+  baseItemId Int? // Null para items personalizados
   baseItem   Item? @relation("BaseItem", fields: [baseItemId], references: [id])
 
+  // Categoría personalizada a la que pertenece
   personalizedCategoryId Int
   personalizedCategory   PersonalizedCategory @relation(fields: [personalizedCategoryId], references: [id], onDelete: Cascade)
 
-  score Int
+  // Puntaje asignado por el usuario (1-5) - OBLIGATORIO para items que se guardan
+  score Int // 1-5, siempre presente para items guardados
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([personalizedCategoryId, baseItemId])
-  @@unique([personalizedCategoryId, name])
+  @@unique([personalizedCategoryId, baseItemId]) // Un item base por categoría personalizada
+  @@unique([personalizedCategoryId, name]) // Nombres únicos por categoría personalizada
 }
 
 model Category {
@@ -220,9 +240,11 @@ model Category {
   items     Item[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Categorías personalizadas basadas en esta categoría
   personalizedCategories PersonalizedCategory[] @relation("BaseCategory")
 
-  @@unique([name, formId])
+  @@unique([name, formId]) // NAME UNIQUE within a form
 }
 
 model Item {
@@ -232,9 +254,11 @@ model Item {
   category   Category @relation(fields: [categoryId], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  // Items personalizados basados en este item
   personalizedItems PersonalizedItem[] @relation("BaseItem")
 
-  @@unique([name, categoryId])
+  @@unique([name, categoryId]) // NAME UNIQUE within a category
 }
 
 // =============================
@@ -244,6 +268,7 @@ model Item {
 model Opportunity {
   id        Int      @id @default(autoincrement())
   name      String
+  color     String?
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -253,6 +278,7 @@ model Opportunity {
 model Need {
   id        Int      @id @default(autoincrement())
   name      String
+  color     String?
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -262,46 +288,7 @@ model Need {
 model Problem {
   id        Int      @id @default(autoincrement())
   name      String
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// =============================
-// Prioridades
-// =============================
-
-model HighPriority {
-  id        Int      @id @default(autoincrement())
-  name      String
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MediumPriority {
-  id        Int      @id @default(autoincrement())
-  name      String
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model LowPriority {
-  id        Int      @id @default(autoincrement())
-  name      String
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MediumPriority2 {
-  id        Int      @id @default(autoincrement())
-  name      String
+  color     String?
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
