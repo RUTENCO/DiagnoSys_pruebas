@@ -18,12 +18,12 @@ export default function CategoryEditor({
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-[#2E6347]">Categories</h3>
+        <h3 className="text-xl font-bold text-[#2E6347]">Categor&#xED;as</h3>
         <button
           onClick={onAddCategory}
           className="px-4 py-2 bg-[#2E6347] text-white rounded-lg hover:bg-[#265239] transition-opacity cursor-pointer"
         >
-          + Add Category
+          + Agregar categor&#xED;a
         </button>
       </div>
 
@@ -45,7 +45,7 @@ export default function CategoryEditor({
             <button
               onClick={() => onDeleteCategory(index)}
               className="bg-transparent border-none text-red-600 cursor-pointer transition-all duration-200 p-2 rounded-md hover:bg-green-100 hover:text-green-800"
-              title="Delete category"
+              title="Eliminar categor&#xED;a"
             >
               🗑
             </button>

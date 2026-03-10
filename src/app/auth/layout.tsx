@@ -17,37 +17,37 @@ export default function AuthLayout({
                                 DiagnoSys
                             </h1>
                             <p className="text-lg lg:text-2xl font-medium text-teal-700 leading-relaxed">
-                                Your guide to digital transformation diagnosis
+                                Tu guía para el diagnóstico de transformación digital
                             </p>
                         </div>
                         <div className="space-y-6">
                             <p className="text-base lg:text-lg text-black leading-relaxed max-w-2xl">
-                                DiagnoSys is the web platform that guides organizations through a structured process to assess their readiness for digital transformation. Understand to transform with purpose.
+                                DiagnoSys es la plataforma web que guía a las organizaciones a través de un proceso estructurado para evaluar su preparación para la transformación digital. Comprende para transformar con propósito.
                             </p>
                             
                             <p className="text-base lg:text-lg text-black leading-relaxed max-w-2xl">
-                                Our tool helps you map capabilities, identify environmental forces, prioritize strategic initiatives, and generate a visual action plan, all in five simple stages: Zoom In, Zoom Out, Categorization, Prioritization, and Report.
+                                Nuestra herramienta te ayuda a mapear capacidades, identificar fuerzas del entorno, priorizar iniciativas estratégicas y generar un plan de acción visual, todo en cinco etapas simples: Zoom In, Zoom Out, Categorización, Priorización y Reporte.
                             </p>
                         </div>
                         <div className="space-y-4">
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">5-stage guided process</span> for comprehensive and strategic diagnosis
+                                    <span className="font-semibold">Proceso guiado de 5 etapas</span> para un diagnóstico integral y estratégico
                                 </p>
                             </div>
                             
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">100% configurable interface</span> that adapts to your sector and context
+                                    <span className="font-semibold">Interfaz 100% configurable</span> que se adapta a tu sector y contexto
                                 </p>
                             </div>
                             
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">Visual and automated report</span> ready for decision making
+                                    <span className="font-semibold">Reporte visual y automatizado</span> listo para la toma de decisiones
                                 </p>
                             </div>
                         </div>

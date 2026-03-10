@@ -112,6 +112,33 @@
     background: #265239;
 }
 
+.navigationButtons {
+    display: flex;
+    /* flex-col (móvil) */
+    flex-direction: column; 
+    align-items: center;
+    width: 100%;
+    margin-top: 3rem; 
+    gap: 1rem; /* gap-4 */
+}
+
+/* sm:flex-row (pantallas medianas/grandes) */
+@media (min-width: 640px) {
+    .navigationButtons {
+        flex-direction: row;
+        justify-content: center;
+        /* Reducimos el gap de 5rem a uno más manejable para evitar desbordes */
+        gap: 1.5rem; 
+    }
+}
+
+/* Asegúrate de que los botones dentro no fuercen un ancho infinito */
+.navigationButtons button {
+    width: 100%;
+    max-width: 300px; /* Evita que el botón sea gigante en pantallas grandes */
+}
+
+
 .tag {
     font-size: 0.75rem;
     padding: 0.2rem 0.5rem;

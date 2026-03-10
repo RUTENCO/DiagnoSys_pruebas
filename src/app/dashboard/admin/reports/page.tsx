@@ -242,10 +242,10 @@ export default function ReportsPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347] mb-2">
-                        Digital Assessment Reports
+                        Reportes de Evaluación Digital
                     </h1>
                     <p className="text-black">
-                        View your latest personalized form evaluations organized by assessment type
+                        Visualiza tus últimas evaluaciones personalizadas organizadas por tipo de evaluación
                     </p>
                 </div>
 
@@ -256,7 +256,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Zoom In Forms</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom In</p>
                                     <p className="text-2xl font-bold">{zoomInForms.length}</p>
                                 </div>
                             </div>
@@ -268,7 +268,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Zoom Out Forms</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom Out</p>
                                     <p className="text-2xl font-bold">{zoomOutForms.length}</p>
                                 </div>
                             </div>
@@ -280,7 +280,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-blue-500" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Total Forms</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Total de Formularios</p>
                                     <p className="text-2xl font-bold">{zoomInForms.length + zoomOutForms.length}</p>
                                 </div>
                             </div>
@@ -293,7 +293,7 @@ export default function ReportsPage() {
                     <div className="mb-12">
                         <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                             <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom In - Skills Assessment
+                            Zoom In - Evaluación de Habilidades
                         </h2>
                         <div className="flex flex-col gap-6">
                             {zoomInForms.map((form) => (
@@ -315,7 +315,7 @@ export default function ReportsPage() {
                     <div className="mb-12">
                         <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                             <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom Out - Capabilities Assessment
+                            Zoom Out - Evaluación de Capacidades
                         </h2>
                         <div className="flex flex-col gap-6">
                             {zoomOutForms.map((form) => (
@@ -338,8 +338,8 @@ export default function ReportsPage() {
                         <CardContent className="py-12 text-center">
                             <div className="text-[#2E6347]">
                                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50 text-[#2E6347]" />
-                                <h3 className="text-lg font-medium mb-2">No Reports Available</h3>
-                                <p>Complete some form evaluations to see your radar charts here</p>
+                                <h3 className="text-lg font-medium mb-2">Sin Reportes Disponibles</h3>
+                                <p>Completa algunas evaluaciones de formularios para ver tus gráficas aquí</p>
                             </div>
                         </CardContent>
                     </Card>

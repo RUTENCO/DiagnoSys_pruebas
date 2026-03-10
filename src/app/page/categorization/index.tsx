@@ -130,7 +130,7 @@ export default function ZoomOutCategorization() {
     setDestinations(newDestinations);
   };
 
-  if (loading) return <p className="text-center mt-10 text-gray-500">Loading data...</p>;
+  if (loading) return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
 
   // Calcular si ya están todos los papelitos clasificados
   const allNotes = categories.flatMap((c) => c.notes);
@@ -156,17 +156,17 @@ export default function ZoomOutCategorization() {
       });
 
       if (!res.ok) throw new Error("Error saving data");
-      setErrorModal("Data saved successfully ✅");
+      setErrorModal("Datos guardados exitosamente ✅");
     } catch (err) {
       console.error(err);
-      setErrorModal("Error saving data ❌");
+      setErrorModal("Error al guardar los datos ❌");
     }
   };
 
   return (
     <div className="p-6 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
-          Zoom Out: Categorization
+          Zoom Out: Categorización
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -202,9 +202,15 @@ export default function ZoomOutCategorization() {
           </div>
 
           <div className="flex flex-col gap-6">
-            {(["opportunities", "needs", "problems"] as const).map((key) => (
+            {(["opportunities", "needs", "problems"] as const).map((key) => {
+              const labels: Record<string, string> = {
+                opportunities: "Oportunidades",
+                needs: "Necesidades",
+                problems: "Problemas",
+              };
+              return (
               <div key={key}>
-                <h3 className="text-lg font-bold uppercase mb-2 text-[#2E6347]">{key}</h3>
+                <h3 className="text-lg font-bold uppercase mb-2 text-[#2E6347]">{labels[key]}</h3>
                 <Droppable droppableId={key}>
                   {(provided) => (
                     <div
@@ -231,7 +237,8 @@ export default function ZoomOutCategorization() {
                   )}
                 </Droppable>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </DragDropContext>
@@ -246,7 +253,7 @@ export default function ZoomOutCategorization() {
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >
-          Save
+          Guardar
         </button>
       </div>
       {/* Modal */}

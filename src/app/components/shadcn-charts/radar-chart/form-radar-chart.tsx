@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from "recharts"
 import {
@@ -119,7 +119,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                 </CardHeader>
                 <CardContent className="pb-0 bg-white">
                     <div className="mx-auto aspect-square max-h-[300px] flex items-center justify-center">
-                        <p className="text-gray-500">No data available</p>
+                        <p className="text-gray-500">Sin datos disponibles</p>
                     </div>
                 </CardContent>
             </Card>
@@ -138,34 +138,32 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
 
     // Para casos con menos de 3 categorías, necesitamos al menos 3 puntos para formar un polígono
     if (data.length === 1) {
-        // Para una sola categoría, mantenemos el punto real y agregamos 2 puntos en posiciones diferentes
         const realPoint = chartData[0];
         const maxScore = realPoint.maxScore;
         
         chartData = [
-            realPoint, // El punto real con datos en la primera posición
+            realPoint,
             {
-                category: '', // Punto invisible 1 en segunda posición
+                category: '',
                 originalCategory: '', 
-                score: 0, // Valor 0 para que esté en el centro
+                score: 0,
                 maxScore: maxScore,
                 percentage: 0
             },
             {
-                category: '', // Punto invisible 2 en tercera posición  
+                category: '',
                 originalCategory: '', 
-                score: 0, // Valor 0 para que esté en el centro
+                score: 0,
                 maxScore: maxScore,
                 percentage: 0
             }
         ];
     } else if (data.length === 2) {
-        // Para dos categorías, agregamos un punto invisible
         const maxScore = data[0]?.maxScore || 5;
         chartData.push({
-            category: '', // Categoría vacía (no se mostrará la etiqueta)
-            originalCategory: '', // Sin categoría original
-            score: 0, // Valor 0 para formar el polígono
+            category: '',
+            originalCategory: '',
+            score: 0,
             maxScore: maxScore,
             percentage: 0
         });
@@ -173,12 +171,12 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
 
     const chartConfig = {
         score: {
-            label: "Score",
-            color: "#3B82F6", // Azul para los puntos principales
+            label: "Puntaje",
+            color: "#3B82F6",
         },
         maxScore: {
-            label: "Max Score",
-            color: "#6B7280", // Gris para la línea de referencia
+            label: "Puntaje máximo",
+            color: "#6B7280",
         },
     } satisfies ChartConfig;
 
@@ -186,16 +184,13 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
     const CustomScoreDot = (props: { cx?: number; cy?: number; payload?: { category: string; score: number; maxScore: number; percentage: number }; index?: number }) => {
         const { cx, cy, payload, index } = props;
 
-        // Si la categoría es vacía -> no renderizamos nada
         if (!payload?.category || payload.category.trim() === '') {
             return null;
         }
 
-        // Validaciones seguras de coordenadas
         const validCx = typeof cx === 'number' && !Number.isNaN(cx) ? cx : 0;
         const validCy = typeof cy === 'number' && !Number.isNaN(cy) ? cy : 0;
 
-        // Tamaño del punto según número de categorías
         const pointSize =
             (Array.isArray(data) && data.length === 1) ? 12 :
             (Array.isArray(data) && data.length === 2) ? 8 :
@@ -220,16 +215,13 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
     const CustomMaxScoreDot = (props: { cx?: number; cy?: number; payload?: { category: string; score: number; maxScore: number; percentage: number }; index?: number }) => {
         const { cx, cy, payload, index } = props;
 
-        // Si la categoría es vacía -> no renderizamos nada
         if (!payload?.category || payload.category.trim() === '') {
             return null;
         }
 
-        // Validaciones seguras de coordenadas
         const validCx = typeof cx === 'number' && !Number.isNaN(cx) ? cx : 0;
         const validCy = typeof cy === 'number' && !Number.isNaN(cy) ? cy : 0;
 
-        // Tamaño del punto según número de categorías
         const pointSize =
             (Array.isArray(data) && data.length === 1) ? 10 :
             (Array.isArray(data) && data.length === 2) ? 6 :
@@ -310,7 +302,6 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                         indicator="line"
                                         className="green-interactive border border-green-200 shadow-lg rounded-lg p-3 max-w-xs md:max-w-sm"
                                         labelFormatter={(label, payload) => {
-                                            // En móviles, mostrar el nombre completo de la categoría
                                             const fullCategoryName = payload?.[0]?.payload?.originalCategory || label;
                                             return (
                                                 <div className="text-sm font-semibold text-[#2E6347] mb-2">
@@ -322,7 +313,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'score') {
                                                 return [
                                                     <div key="score" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-black font-medium">Score:</span>
+                                                        <span className="text-black font-medium">Puntaje:</span>
                                                         <span className="text-black font-bold ml-3">{value}</span>
                                                     </div>,
                                                     ''
@@ -331,7 +322,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'maxScore') {
                                                 return [
                                                     <div key="maxScore" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-black font-medium">Max Score:</span>
+                                                        <span className="text-black font-medium">Puntaje máximo:</span>
                                                         <span className="text-black font-bold ml-3">{value}</span>
                                                     </div>,
                                                     ''
@@ -340,7 +331,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'percentage') {
                                                 return [
                                                     <div key="percentage" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-[#2E6347] font-medium">Percentage:</span>
+                                                        <span className="text-[#2E6347] font-medium">Porcentaje:</span>
                                                         <span className="text-emerald-600 font-bold ml-3">{value}%</span>
                                                     </div>,
                                                     ''
@@ -359,20 +350,16 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                         fontWeight: 700 
                                     }}
                                     tickFormatter={(value) => {
-                                        // Si la categoría está vacía (punto invisible), no mostrar nada
                                         if (!value || value.trim() === '') return '';
                                         
-                                        // Responsive: nombres completos en pantallas grandes, truncados en pequeñas
                                         if (typeof window !== 'undefined') {
-                                            const isMobile = window.innerWidth < 768; // md breakpoint
+                                            const isMobile = window.innerWidth < 768;
                                             if (isMobile) {
-                                                // En móviles, truncar según número de categorías
                                                 const maxLength = data.length > 10 ? 8 : data.length > 5 ? 10 : 12;
                                                 return value.length > maxLength ? value.substring(0, maxLength) + '...' : value;
                                             }
                                         }
                                         
-                                        // En pantallas grandes, mostrar nombres completos
                                         return value;
                                     }}
                                 />
@@ -407,9 +394,8 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                 
                 {/* Estadísticas detalladas para todas las gráficas */}
                 <div className="mt-6 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-bold text-[#2E6347] mb-4">Category Details</h4>
+                    <h4 className="text-sm font-bold text-[#2E6347] mb-4">Detalle por categoría</h4>
                     <div className={`grid gap-3 ${
-                        // Mobile first: siempre 1 columna en móviles
                         data.length <= 3 ? 'grid-cols-1' : 
                         data.length <= 6 ? 'grid-cols-1 md:grid-cols-2' : 
                         data.length <= 12 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
@@ -425,7 +411,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                                             </svg>
-                                            {category.itemCount} items
+                                            {category.itemCount} ítems
                                         </span>
                                     </p>
                                 </div>
@@ -466,14 +452,14 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
         maxScore: 5
     }));
 
-    const chartConfig = {
+    const chartConfig2 = {
         score: {
-            label: "Average Score",
-            color: "hsl(142, 76%, 36%)", // Green color matching our theme
+            label: "Promedio",
+            color: "hsl(142, 76%, 36%)",
         },
         completion: {
-            label: "Completion %",
-            color: "hsl(142, 76%, 56%)", // Lighter green
+            label: "% Completado",
+            color: "hsl(142, 76%, 56%)",
         },
     } satisfies ChartConfig;
 
@@ -489,7 +475,7 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
             </CardHeader>
             <CardContent className="pb-0">
                 <ChartContainer
-                    config={chartConfig}
+                    config={chartConfig2}
                     className="mx-auto aspect-square max-h-[350px]"
                 >
                     <ResponsiveContainer width="100%" height="100%">
@@ -501,14 +487,14 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
                                     className="green-interactive border border-green-200 shadow-lg rounded-lg p-3"
                                     labelFormatter={(label) => (
                                         <span className="text-sm font-semibold text-[#2E6347]">
-                                            Module: {label}
+                                            Módulo: {label}
                                         </span>
                                     )}
                                     formatter={(value, name) => {
                                         if (name === 'score') {
                                             return [
                                                 <div key="score" className="flex justify-between items-center w-full min-w-[120px]">
-                                                    <span className="text-gray-700 font-medium">Avg Score:</span>
+                                                    <span className="text-gray-700 font-medium">Puntaje prom.:</span>
                                                     <span className="text-[#2E6347] font-bold ml-3">{value}</span>
                                                 </div>,
                                                 ''
@@ -517,7 +503,7 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
                                         if (name === 'completion') {
                                             return [
                                                 <div key="completion" className="flex justify-between items-center w-full min-w-[120px]">
-                                                    <span className="text-gray-700 font-medium">Completion:</span>
+                                                    <span className="text-gray-700 font-medium">Completado:</span>
                                                     <span className="text-emerald-600 font-bold ml-3">{value}%</span>
                                                 </div>,
                                                 ''

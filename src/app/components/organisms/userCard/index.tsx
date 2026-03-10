@@ -24,7 +24,7 @@ export default function UserCard({ name,gmail, role, avatar }: UserCardProps) {
         className="flex items-center gap-2 cursor-pointer"
       >
         <LogOut className="h-5 w-5 text-white" />
-        Logout
+        Cerrar sesión
     </Button>
     </div>
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,13 +25,13 @@ type EditProfileModalProps = {
 // Zod schema
 const editProfileSchema = z
   .object({
-    name: z.string().min(1, { message: "Name is required" }),
-    gmail: z.string().email({ message: "Invalid email address" }),
+    name: z.string().min(1, { message: "El nombre es requerido" }),
+    gmail: z.string().email({ message: "Correo electrónico inválido" }),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Must contain at least one number")
+      .min(8, "La contraseña debe tener al menos 8 caracteres")
+      .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
+      .regex(/[0-9]/, "Debe contener al menos un número")
       .optional()
       .or(z.literal("")),
     confirmPassword: z.string().optional(),
@@ -43,11 +43,11 @@ const editProfileSchema = z
   })
   .refine(
     (data) => data.password === data.confirmPassword,
-    { path: ["confirmPassword"], message: "Passwords do not match" }
+    { path: ["confirmPassword"], message: "Las contraseñas no coinciden" }
   )
   .refine(
     (data) => data.newPassword === data.confirmNewPassword,
-    { path: ["confirmNewPassword"], message: "Passwords do not match" }
+    { path: ["confirmNewPassword"], message: "Las contraseñas no coinciden" }
   );
 
 type FormData = z.infer<typeof editProfileSchema>;
@@ -96,13 +96,13 @@ export default function EditProfileModal({
     // Comprobamos si se desea cambiar la contraseña
     if (data.newPassword && data.confirmNewPassword) {
       if (data.newPassword !== data.confirmNewPassword) {
-        alert("Passwords do not match");
+        alert("Las contraseñas no coinciden");
         return;
       }
 
       // Verificar que la contraseña actual se haya ingresado
       if (!data.currentPassword) {
-        alert("Please enter your current password");
+        alert("Por favor ingresa tu contraseña actual");
         return;
       }
     }
@@ -133,15 +133,15 @@ export default function EditProfileModal({
     const result = await res.json();
 
     if (!res.ok) {
-      alert(result.error || "Error updating profile");
+      alert(result.error || "Error al actualizar el perfil");
       return;
     }
 
-    alert("Profile updated successfully!");
+    alert("¡Perfil actualizado exitosamente!");
     setOpen(false); // cerrar modal
   } catch (err) {
     console.error(err);
-    alert("Server connection error");
+    alert("Error de conexión con el servidor");
   }
 };
 
@@ -150,18 +150,18 @@ export default function EditProfileModal({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button className="cursor-pointer flex items-center p-1 rounded hover:scale-105 transition-transform">
-          <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> Edit profile
+          <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> Editar perfil
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg green-interactive">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
+          <DialogTitle>Editar Perfil</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
-          {/* Name */}
+          {/* Nombre */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Name
+              Nombre
             </Label>
             <div className="col-span-3">
               <Input id="name" {...register("name")} />
@@ -191,36 +191,36 @@ export default function EditProfileModal({
             </Label>
             <div className="col-span-3 ">
               <select {...register("sector")} className="w-full bg-teal-50 border-gray-300">
-                <option value="">Select Sector</option>
-                <option value="Gobierno">Government</option>
-                <option value="Salud">Health</option>
-                <option value="Educación">Education</option>
-                <option value="Informática">Computer Science</option>
-                <option value="Telecomunicaciones">Telecommunications</option>
-                <option value="Otros">Others</option>
+                <option value="">Seleccionar Sector</option>
+                <option value="Gobierno">Gobierno</option>
+                <option value="Salud">Salud</option>
+                <option value="Educación">Educación</option>
+                <option value="Informática">Informática</option>
+                <option value="Telecomunicaciones">Telecomunicaciones</option>
+                <option value="Otros">Otros</option>
               </select>
             </div>
           </div>
 
-          {/* Company Size */}
+          {/* Tamaño empresa */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="companySize" className="text-right">
-              Company Size
+              Tamaño empresa
             </Label>
             <div className="col-span-3">
               <select {...register("companySize")} className="w-full bg-teal-50">
-                <option value="">Select Size</option>
-                <option value="0-10">0-10 employees</option>
-                <option value="11-50">11-50 employees</option>
-                <option value="51-250">51 a 250 employees</option>
-                <option value="250+">Más de 250 employees</option>
+                <option value="">Seleccionar tamaño</option>
+                <option value="0-10">0-10 empleados</option>
+                <option value="11-50">11-50 empleados</option>
+                <option value="51-250">51 a 250 empleados</option>
+                <option value="250+">Más de 250 empleados</option>
               </select>
             </div>
           </div>
 
-          {/* Role (solo lectura) */}
+          {/* Rol (solo lectura) */}
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-right">Role</Label>
+            <Label htmlFor="role" className="text-right">Rol</Label>
             <Input
               id="role"
               value={role}
@@ -230,21 +230,21 @@ export default function EditProfileModal({
           </div>
 
 
-          {/* Change Password Button */}
+          {/* Botón Cambiar Contraseña */}
           <Button
             type="button"
             onClick={() => setChangePassword(!changePassword)}
-            className="mt-2 w-40 bg-blue-600 hover:bg-blue-500 cursor-pointer"
+            className="mt-2 w-auto min-w-40 bg-blue-600 hover:bg-blue-500 cursor-pointer"
           >
-            {changePassword ? "Hide Change Password" : "Change Password"}
+            {changePassword ? "Ocultar cambio de contraseña" : "Cambiar contraseña"}
           </Button>
 
-          {/* Password Change Form */}
+          {/* Formulario Cambio de Contraseña */}
           {changePassword && (
             <>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="currentPassword" className="text-right">
-                  Current Password*
+                  Contraseña actual*
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -256,7 +256,7 @@ export default function EditProfileModal({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="newPassword" className="text-right">
-                  New Password*
+                  Nueva contraseña*
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -273,7 +273,7 @@ export default function EditProfileModal({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="confirmNewPassword" className="text-right">
-                  Confirm New Password*
+                  Confirmar nueva contraseña*
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -292,7 +292,7 @@ export default function EditProfileModal({
           )}
 
           <DialogFooter>
-            <Button type="submit" className="mt-2 w-full cursor-pointer">Save changes</Button>
+            <Button type="submit" className="mt-2 w-full cursor-pointer">Guardar cambios</Button>
           </DialogFooter>
         </form>
       </DialogContent>

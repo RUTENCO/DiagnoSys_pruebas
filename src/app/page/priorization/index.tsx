@@ -123,7 +123,7 @@ export default function PriorityQuadrants() {
   };
 
   if (loading)
-    return <p className="text-center mt-10 text-gray-500">Loading data...</p>;
+    return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
 
   const allNotes = categories.flatMap((c) => c.notes);
   const allDestNotes = [
@@ -154,17 +154,17 @@ export default function PriorityQuadrants() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Error saving data");
-      setErrorModal("Data saved successfully ✅");
+      setErrorModal("Datos guardados exitosamente ✅");
     } catch (err) {
       console.error(err);
-      setErrorModal("Error saving data ❌");
+      setErrorModal("Error al guardar los datos ❌");
     }
   };
 
   return (
     <div className="p-6 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
-        Zoom Out: Prioritization Matrix
+        Zoom Out: Matriz de Priorizaci&#xF3;n
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -215,20 +215,20 @@ export default function PriorityQuadrants() {
         <div className="relative w-full md:w-[800px] mx-auto">
           {/* Ejes */}
           <div className="absolute -left-32 top-1/2 -translate-y-1/2 -rotate-90 text-gray-700 font-bold">
-            Low Impact - High Impact
+            Bajo Impacto - Alto Impacto
           </div>
           <div className="absolute bottom-0 left-1/2 translate-x-[-50%] translate-y-8 text-gray-700 font-bold min-w-max">
-            Low urgency - High urgency
+            Baja urgencia - Alta urgencia
           </div>
 
           {/* Cuadrantes */}
           <div className="grid grid-cols-2 grid-rows-2 border border-gray-500">
             {(
               [
-                { id: "q2", title: "Medium priority", border: "border-yellow-300" },
-                { id: "q1", title: "High priority", border: "border-green-400" },
-                { id: "q3", title: "Low priority", border: "border-red-500" },
-                { id: "q4", title: "Medium priority", border: "border-yellow-300" },
+                { id: "q2", title: "Prioridad media", border: "border-yellow-300" },
+                { id: "q1", title: "Alta prioridad", border: "border-green-400" },
+                { id: "q3", title: "Baja prioridad", border: "border-red-500" },
+                { id: "q4", title: "Prioridad media", border: "border-yellow-300" },
               ] as const
             ).map((q) => (
               <Droppable key={q.id} droppableId={q.id}>
@@ -281,7 +281,7 @@ export default function PriorityQuadrants() {
               : "bg-gray-400 cursor-not-allowed"
           }`}
         >
-          Save
+          Guardar
         </button>
       </div>
 

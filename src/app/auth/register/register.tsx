@@ -9,19 +9,19 @@ import styles from "./register.module.css";
 
 const schema = z
     .object({
-        name: z.string().min(1, { message: "Name is required" }),
-        email: z.string().email({ message: "Invalid email address" }),
+        name: z.string().min(1, { message: "El nombre es requerido" }),
+        email: z.string().email({ message: "Dirección de correo inválida" }),
         password: z
             .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-            .regex(/[0-9]/, "Must contain at least one number"),
+            .min(8, "La contraseña debe tener al menos 8 caracteres")
+            .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
+            .regex(/[0-9]/, "Debe contener al menos un número"),
         confirmPassword: z.string(),
-        role: z.enum(["consultant", "organization"], { message: "Please select your role" }),
+        role: z.enum(["consultant", "organization"], { message: "Por favor selecciona tu rol" }),
     })
     .refine((data) => data.password === data.confirmPassword, {
         path: ["confirmPassword"],
-        message: "Passwords do not match",
+        message: "Las contraseñas no coinciden",
     });
 
 type FormData = z.infer<typeof schema>;
@@ -61,7 +61,7 @@ export default function RegisterForm({ onSwitch }: Props) {
             const body: RegisterResponse = await res.json().catch(() => ({}));
 
             if (!res.ok) {
-                setError(body.error || "Server error");
+                setError(body.error || "Error del servidor");
                 return;
             }
 
@@ -73,7 +73,7 @@ export default function RegisterForm({ onSwitch }: Props) {
                 onSwitch(); // Cambiar a la vista de login
             }, 3000);
         } catch {
-            setError("Could not connect to the server");
+            setError("No se pudo conectar al servidor");
         } finally {
             setLoading(false);
         }
@@ -83,35 +83,35 @@ export default function RegisterForm({ onSwitch }: Props) {
         <div className={styles.container}>
             <form onSubmit={handleSubmit(onSubmit)} noValidate className={styles.form}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Get started</h2>
-                    <p className={styles.subtitle}>Create a new account</p>
+                    <h2 className={styles.title}>Comenzar</h2>
+                    <p className={styles.subtitle}>Crea una nueva cuenta</p>
                 </div>
 
                 {/* Name */}
                 <div className={styles.inputGroup}>
                     <input id="name" {...register("name")} placeholder=" " className={styles.input} />
-                    <label htmlFor="name" className={styles.label}>Name</label>
+                    <label htmlFor="name" className={styles.label}>Nombre</label>
                     {errors.name && <p className={styles.error}>{errors.name.message}</p>}
                 </div>
 
                 {/* Email */}
                 <div className={styles.inputGroup}>
                     <input id="email" {...register("email")} placeholder=" " className={styles.input} />
-                    <label htmlFor="email" className={styles.label}>Email</label>
+                    <label htmlFor="email" className={styles.label}>Correo electrónico</label>
                     {errors.email && <p className={styles.error}>{errors.email.message}</p>}
                 </div>
 
                 {/* Role */}
                 <div className={styles.roleSelection}>
-                    <h3 className={styles.roleTitle}>What best describes you?</h3>
+                    <h3 className={styles.roleTitle}>¿Qué te describe mejor?</h3>
                     <div className={styles.roleOptions}>
                         <label className={styles.roleOption}>
                             <input type="radio" value="organization" {...register("role")} className={styles.roleRadio} />
                             <div className={styles.roleCard}>
                                 <div className={styles.roleIcon}>🏢</div>
                                 <div className={styles.roleInfo}>
-                                    <h4>Organization</h4>
-                                    <p>I represent a company or institution</p>
+                                    <h4>Organización</h4>
+                                    <p>Represento una empresa o institución</p>
                                 </div>
                             </div>
                         </label>
@@ -121,8 +121,8 @@ export default function RegisterForm({ onSwitch }: Props) {
                             <div className={styles.roleCard}>
                                 <div className={styles.roleIcon}>👨‍💼</div>
                                 <div className={styles.roleInfo}>
-                                    <h4>Consultant</h4>
-                                    <p>I provide independent consulting services</p>
+                                    <h4>Consultor</h4>
+                                    <p>Ofrezco servicios de consultoría independiente</p>
                                 </div>
                             </div>
                         </label>
@@ -140,14 +140,14 @@ export default function RegisterForm({ onSwitch }: Props) {
                         className={styles.input}
                     />
                     <label htmlFor="password" className={styles.label}>
-                        Password
+                        Contraseña
                     </label>
 
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className={styles.eyeButton}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -167,14 +167,14 @@ export default function RegisterForm({ onSwitch }: Props) {
                         className={styles.input}
                     />
                     <label htmlFor="confirmPassword" className={styles.label}>
-                        Confirm Password
+                        Confirmar contraseña
                     </label>
 
                     <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className={styles.eyeButton}
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -187,13 +187,13 @@ export default function RegisterForm({ onSwitch }: Props) {
                 {error && <p className={styles.serverError}>{error}</p>}
 
                 <button type="submit" disabled={loading} className={styles.button}>
-                    {loading ? "Creating account..." : "Create account"}
+                    {loading ? "Creando cuenta..." : "Crear cuenta"}
                 </button>
 
                 <p className={styles.footerText}>
-                    Have an account?{" "}
+                    ¿Ya tienes una cuenta?{" "}
                     <button type="button" onClick={() => { reset(undefined, { keepErrors: false }); onSwitch(); }} className={styles.link}>
-                        Sign In Now
+                        Inicia sesión
                     </button>
                 </p>
             </form>
@@ -201,8 +201,8 @@ export default function RegisterForm({ onSwitch }: Props) {
             {successPopup && (
                 <div className={styles.popupOverlay}>
                     <div className={styles.popup}>
-                        <h3>🎉 Account created successfully!</h3>
-                        <p>You will be redirected to login shortly.</p>
+                        <h3>¡Cuenta creada exitosamente! 🎉</h3>
+                        <p>Serás redirigido al inicio de sesión en breve.</p>
                     </div>
                 </div>
             )}

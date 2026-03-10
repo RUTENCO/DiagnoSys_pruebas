@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -10,12 +10,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import styles from "./login.module.css";
 
 const schema = z.object({
-    email: z.string().email({ message: "Invalid email address" }),
+    email: z.string().email({ message: "Dirección de correo inválida" }),
     password: z
         .string()
-        .min(8, "Password must be at least 8 characters")
-        .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-        .regex(/[0-9]/, "Must contain at least one number"),
+        .min(8, "La contraseña debe tener al menos 8 caracteres")
+        .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
+        .regex(/[0-9]/, "Debe contener al menos un número"),
     rememberMe: z.boolean().optional(),
 });
 
@@ -49,7 +49,7 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
 
         setLoading(false);
 
-        if (res?.error) setError("Invalid email or password");
+        if (res?.error) setError("Correo o contrasena invalidos");
         else {
             router.push("/dashboard");
             router.refresh();
@@ -60,20 +60,20 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
         <div className={styles.container}>
             <form onSubmit={handleSubmit(onSubmit)} noValidate className={styles.form}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Welcome Back</h2>
-                    <p className={styles.subtitle}>Sign in to your account</p>
+                    <h2 className={styles.title}>Bienvenido de nuevo</h2>
+                    <p className={styles.subtitle}>Inicia sesion en tu cuenta</p>
                 </div>
 
                 <div className={styles.inputGroup}>
                     <input id="email" type="email" placeholder=" " {...register("email")} className={styles.input} />
-                    <label htmlFor="email" className={styles.label}>Email</label>
+                    <label htmlFor="email" className={styles.label}>Correo electronico</label>
                     {errors.email && <p className={styles.error}>{errors.email.message}</p>}
                 </div>
 
                 <div className={`${styles.inputGroup} ${styles.passwordWrapper}`}>
                     <input id="password" type={showPassword ? "text" : "password"} placeholder=" " {...register("password")} className={styles.input} />
                     <label htmlFor="password" className={styles.label}>
-                        Password
+                        Contrasena
                     </label>
 
                     <button
@@ -92,23 +92,23 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
                 <div className={styles.optionsRow}>
                     <label className={styles.rememberMe}>
                         <input type="checkbox" {...register("rememberMe")} />
-                        Remember me
+                        Recordarme
                     </label>
                     <button type="button" onClick={onForgot} className={styles.link}>
-                        Forgot your password?
+                        Olvidaste tu contrasena?
                     </button>
                 </div>
 
                 {error && <p className={styles.error}>{error}</p>}
 
                 <button type="submit" disabled={loading} className={styles.button}>
-                    {loading ? "Logging in..." : "Login"}
+                    {loading ? "Iniciando sesion..." : "Iniciar sesion"}
                 </button>
 
                 <p className={styles.footerText}>
-                    Don’t have an account?{" "}
+                    No tienes una cuenta?{" "}
                     <button type="button" onClick={onSwitch} className={styles.link}>
-                        Sign Up Now
+                        Registrate ahora
                     </button>
                 </p>
             </form>

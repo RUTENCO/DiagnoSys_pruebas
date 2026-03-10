@@ -7,9 +7,9 @@ export default function ZoomOutPage() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347]">Zoom Out</h1>
                     <p className="mt-2 text-lg  text-black">
-                        External forces that exert positive or negative pressure on the business model. 
-                        <br /> Analyzing them allows you to anticipate risks, seize opportunities, 
-                        and adapt the organization&apos;s digital strategy.
+                        Fuerzas externas que ejercen presión positiva o negativa sobre el modelo de negocio. 
+                        <br /> Analizarlas permite anticipar riesgos, aprovechar oportunidades 
+                        y adaptar la estrategia digital de la organización.
                     </p>
                 </div>
 

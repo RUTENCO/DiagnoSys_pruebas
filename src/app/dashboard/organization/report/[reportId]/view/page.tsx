@@ -109,7 +109,7 @@ export default function ReportViewPage() {
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+        return new Date(dateString).toLocaleDateString('es-CO', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -126,13 +126,13 @@ export default function ReportViewPage() {
 
     const getScoreBadge = (percentage: number) => {
         if (percentage >= 80) {
-            return <Badge className="bg-green-100 text-green-800 border-green-300">Excellent</Badge>;
+            return <Badge className="bg-green-100 text-green-800 border-green-300">Excelente</Badge>;
         } else if (percentage >= 60) {
-            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">Good</Badge>;
+            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">Bueno</Badge>;
         } else if (percentage >= 40) {
-            return <Badge className="bg-orange-100 text-orange-800 border-orange-300">Fair</Badge>;
+            return <Badge className="bg-orange-100 text-orange-800 border-orange-300">Regular</Badge>;
         } else {
-            return <Badge className="bg-red-100 text-red-800 border-red-300">Needs Improvement</Badge>;
+            return <Badge className="bg-red-100 text-red-800 border-red-300">Necesita Mejora</Badge>;
         }
     };
 
@@ -171,7 +171,7 @@ export default function ReportViewPage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Loading report...</span>
+                    <span>Cargando reporte...</span>
                 </div>
             </div>
         );
@@ -181,10 +181,10 @@ export default function ReportViewPage() {
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Report Not Found</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 mb-4">Reporte no encontrado</h1>
                     <Button onClick={goBack} variant="outline">
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Dashboard
+                        Volver al panel
                     </Button>
                 </div>
             </div>
@@ -208,16 +208,16 @@ export default function ReportViewPage() {
                         <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                             <div className="flex items-center">
                                 <Hash className="h-3 w-3 mr-1" />
-                                Version {reportData.version}
+                                Versión {reportData.version}
                             </div>
                             <div className="flex items-center">
                                 <Calendar className="h-3 w-3 mr-1" />
-                                Created {formatDate(reportData.createdAt)}
+                                Creado {formatDate(reportData.createdAt)}
                             </div>
                             {reportData.completedAt && (
                                 <div className="flex items-center">
                                     <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
-                                    Completed {formatDate(reportData.completedAt)}
+                                    Completado {formatDate(reportData.completedAt)}
                                 </div>
                             )}
                         </div>
@@ -227,12 +227,12 @@ export default function ReportViewPage() {
                     {reportData.isCompleted ? (
                         <Badge className="bg-green-100 text-green-800 border-green-300">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Completed
+                            Completado
                         </Badge>
                     ) : (
                         <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
                             <Clock className="h-3 w-3 mr-1" />
-                            In Progress
+                            En Progreso
                         </Badge>
                     )}
                 </div>
@@ -245,7 +245,7 @@ export default function ReportViewPage() {
                         <div className="flex items-center space-x-2">
                             <Target className="h-5 w-5 text-blue-500" />
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Overall Progress</p>
+                                <p className="text-sm font-medium text-gray-600">Progreso General</p>
                                 <p className="text-2xl font-bold">{reportData.stats.completionRate}%</p>
                             </div>
                         </div>
@@ -257,7 +257,7 @@ export default function ReportViewPage() {
                         <div className="flex items-center space-x-2">
                             <BarChart3 className="h-5 w-5 text-green-500" />
                             <div>
-                                <p className="text-sm font-medium text-gray-600">Completed Forms</p>
+                                <p className="text-sm font-medium text-gray-600">Formularios Completados</p>
                                 <p className="text-2xl font-bold">
                                     {reportData.stats.completedForms}/{reportData.stats.totalForms}
                                 </p>
@@ -299,16 +299,16 @@ export default function ReportViewPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 {zoomInModules.length > 0 && (
                     <ModuleRadarChart
-                        title="Zoom In Overview"
-                        description="Skills and capabilities assessment overview"
+                        title="Vista General Zoom In"
+                        description="Resumen de evaluación de habilidades y capacidades"
                         modules={zoomInModules}
                     />
                 )}
                 
                 {zoomOutModules.length > 0 && (
                     <ModuleRadarChart
-                        title="Zoom Out Overview"
-                        description="Strategic capabilities assessment overview"
+                        title="Vista General Zoom Out"
+                        description="Resumen de evaluación de capacidades estratégicas"
                         modules={zoomOutModules}
                     />
                 )}
@@ -319,7 +319,7 @@ export default function ReportViewPage() {
             {/* Zoom In Forms */}
             {reportData.zoomInData.length > 0 && (
                 <div className="mb-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Zoom In - Detailed Analysis</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Zoom In - Análisis Detallado</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {reportData.zoomInData.map((form) => (
                             <div key={form.id} className="space-y-4">
@@ -330,17 +330,17 @@ export default function ReportViewPage() {
                                             {getScoreBadge(form.stats.completionPercentage)}
                                         </div>
                                         <div className="flex items-center justify-between text-sm text-gray-600">
-                                            <span>Module: {form.module}</span>
+                                            <span>Módulo: {form.module}</span>
                                             <span className={getScoreColor(form.stats.completionPercentage)}>
-                                                {form.stats.avgScore}/5.0 avg
+                                                {form.stats.avgScore}/5.0 prom
                                             </span>
                                         </div>
                                     </CardHeader>
                                 </Card>
                                 
                                 <FormRadarChart
-                                    title={`${form.name} - Categories`}
-                                    description={`Average scores by category (${form.stats.totalItems} items)`}
+                                    title={`${form.name} - Categorías`}
+                                    description={`Puntuaciones promedio por categoría (${form.stats.totalItems} ítems)`}
                                     data={form.categoryData}
                                 />
                             </div>
@@ -352,7 +352,7 @@ export default function ReportViewPage() {
             {/* Zoom Out Forms */}
             {reportData.zoomOutData.length > 0 && (
                 <div className="mb-12">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Zoom Out - Detailed Analysis</h2>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Zoom Out - Análisis Detallado</h2>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {reportData.zoomOutData.map((form) => (
                             <div key={form.id} className="space-y-4">
@@ -363,17 +363,17 @@ export default function ReportViewPage() {
                                             {getScoreBadge(form.stats.completionPercentage)}
                                         </div>
                                         <div className="flex items-center justify-between text-sm text-gray-600">
-                                            <span>Module: {form.module}</span>
+                                            <span>Módulo: {form.module}</span>
                                             <span className={getScoreColor(form.stats.completionPercentage)}>
-                                                {form.stats.avgScore}/5.0 avg
+                                                {form.stats.avgScore}/5.0 prom
                                             </span>
                                         </div>
                                     </CardHeader>
                                 </Card>
                                 
                                 <FormRadarChart
-                                    title={`${form.name} - Categories`}
-                                    description={`Average scores by category (${form.stats.totalItems} items)`}
+                                    title={`${form.name} - Categorías`}
+                                    description={`Puntuaciones promedio por categoría (${form.stats.totalItems} ítems)`}
                                     data={form.categoryData}
                                 />
                             </div>
@@ -388,8 +388,8 @@ export default function ReportViewPage() {
                     <CardContent className="py-12 text-center">
                         <div className="text-gray-500">
                             <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <h3 className="text-lg font-medium mb-2">No Data Available</h3>
-                            <p>Complete some forms to see detailed analysis and charts</p>
+                            <h3 className="text-lg font-medium mb-2">Sin Datos Disponibles</h3>
+                            <p>Completa algunos formularios para ver el análisis detallado y las gráficas</p>
                         </div>
                     </CardContent>
                 </Card>

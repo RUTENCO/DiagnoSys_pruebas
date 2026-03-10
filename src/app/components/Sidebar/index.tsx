@@ -23,7 +23,7 @@ export default function Sidebar() {
 
   // Definir los enlaces comunes para todos los roles
   const links = [
-    { href: "/dashboard", label: "Home", icon: <HomeIcon /> },
+    { href: "/dashboard", label: "Inicio", icon: <HomeIcon /> },
   ];
 
   // Define el menú para cada rol
@@ -31,25 +31,24 @@ export default function Sidebar() {
     admin: [
       { href: "/dashboard/admin/zoom-in", label: "Zoom-in", icon: <ZoomInIcon /> },
       { href: "/dashboard/admin/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/admin/categorization", label: "Categorization", icon: <LayoutIcon /> },
-      { href: "/dashboard/admin/prioritization", label: "Prioritization", icon: <ListBulletIcon /> },
-      { href: "/dashboard/admin/reports", label: "Reports", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/admin/users", label: "Users", icon: <PersonIcon /> },
+      { href: "/dashboard/admin/categorization", label: "Categorización", icon: <LayoutIcon /> },
+      { href: "/dashboard/admin/prioritization", label: "Priorización", icon: <ListBulletIcon /> },
+      { href: "/dashboard/admin/reports", label: "Reportes", icon: <ZoomOutIcon /> },
+      { href: "/dashboard/admin/users", label: "Usuarios", icon: <PersonIcon /> },
     ],
     consultant: [
       { href: "/dashboard/consultant/zoom-in", label: "Zoom-in", icon: <ZoomInIcon /> },
       { href: "/dashboard/consultant/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/consultant/categorization", label: "Categorization", icon: <LayoutIcon /> },
-      { href: "/dashboard/consultant/prioritization", label: "Prioritization", icon: <ListBulletIcon /> },
-      //{ href: "/dashboard/consultant/organizations", label: "Organizations", icon: <LayoutIcon /> },
-      { href: "/dashboard/consultant/reports", label: "Reports", icon: <ZoomOutIcon /> },
+      { href: "/dashboard/consultant/categorization", label: "Categorización", icon: <LayoutIcon /> },
+      { href: "/dashboard/consultant/prioritization", label: "Priorización", icon: <ListBulletIcon /> },
+      { href: "/dashboard/consultant/reports", label: "Reportes", icon: <ZoomOutIcon /> },
     ],
     organization: [
       { href: "/dashboard/organization/zoom-in", label: "Zoom-in", icon: <ZoomInIcon /> },
       { href: "/dashboard/organization/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/organization/categorization", label: "Categorization", icon: <LayoutIcon /> },
-      { href: "/dashboard/organization/prioritization", label: "Prioritization", icon: <ListBulletIcon /> },
-      { href: "/dashboard/organization/reports", label: "Reports", icon: <ZoomOutIcon /> },
+      { href: "/dashboard/organization/categorization", label: "Categorización", icon: <LayoutIcon /> },
+      { href: "/dashboard/organization/prioritization", label: "Priorización", icon: <ListBulletIcon /> },
+      { href: "/dashboard/organization/reports", label: "Reportes", icon: <ZoomOutIcon /> },
     ],
   };
 
@@ -88,7 +87,7 @@ export default function Sidebar() {
         className={`pb-20 md:pb-5 fixed top-0 left-0 h-screen w-64  shadow-lg p-4 z-40 pt-16 md:pt-3 transform transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static flex flex-col`}
       >
         <div className="absolute inset-0 green"></div>
-        <h2 className="text-2xl font-bold text-primary mb-6">Menu</h2>
+        <h2 className="text-2xl font-bold text-primary mb-6">Menú</h2>
 
         <nav className="flex flex-col gap-4 flex-1 overflow-y-auto">
           {userLinks.map((link) => (

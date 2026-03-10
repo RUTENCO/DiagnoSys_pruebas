@@ -14,7 +14,7 @@ export default function ItemEditor({
 }) {
   return (
     <div className="mt-4 space-y-3">
-      <h4 className="text-[#2E6347] font-semibold">Items</h4>
+      <h4 className="text-[#2E6347] font-semibold">&#xCD;tems</h4>
 
       {items.map((item, index) => (
         <div key={index} className="flex items-center space-x-3">
@@ -28,7 +28,7 @@ export default function ItemEditor({
           <button
             onClick={() => onDeleteItem(index)}
             className="bg-transparent border-none text-red-600 cursor-pointer transition-all duration-200 p-2 rounded-md hover:bg-green-100 hover:text-green-800"
-            title="Delete item"
+            title="Eliminar &#xED;tem"
           >
             🗑
           </button>
@@ -39,7 +39,7 @@ export default function ItemEditor({
         onClick={onAddItem}
         className="mt-3 px-4 py-2 bg-[#2E6347]  text-white rounded-lg hover:bg-[#265239] transition-all cursor-pointer"
       >
-        + Add Item
+        + Agregar &#xED;tem
       </button>
     </div>
   );

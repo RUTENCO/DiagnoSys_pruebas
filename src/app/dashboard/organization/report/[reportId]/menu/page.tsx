@@ -91,7 +91,7 @@ export default function ReportMenuPage() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Loading report...</span>
+                    <span>Cargando reporte...</span>
                 </div>
             </div>
         );
@@ -102,12 +102,12 @@ export default function ReportMenuPage() {
             <div className="container mx-auto px-4 py-8">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <p className="text-gray-500">Report not found</p>
+                        <p className="text-gray-500">Reporte no encontrado</p>
                         <Button 
                             className="mt-4" 
                             onClick={() => router.push('/dashboard/organization')}
                         >
-                            Back to Dashboard
+                            Volver al panel
                         </Button>
                     </CardContent>
                 </Card>
@@ -117,11 +117,11 @@ export default function ReportMenuPage() {
 
     const getFormStatusBadge = (form: FormStats) => {
         if (form.isCompleted) {
-            return <Badge className="bg-green-100 text-green-800 border-green-300">Completed</Badge>;
+            return <Badge className="bg-green-100 text-green-800 border-green-300">Completado</Badge>;
         } else if (form.completedItems > 0) {
-            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">In Progress</Badge>;
+            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">En progreso</Badge>;
         } else {
-            return <Badge className="bg-gray-100 text-gray-800 border-gray-300">Not Started</Badge>;
+            return <Badge className="bg-gray-100 text-gray-800 border-gray-300">No iniciado</Badge>;
         }
     };
 
@@ -136,7 +136,7 @@ export default function ReportMenuPage() {
                     size="sm"
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Reports
+                    Volver a Reportes
                 </Button>
                 
                 <div className="flex items-center justify-between">
@@ -145,11 +145,11 @@ export default function ReportMenuPage() {
                             {reportData.name} v{reportData.version}
                         </h1>
                         <p className="text-gray-600">
-                            Choose your evaluation perspective and complete the assessment
+                            Elige tu perspectiva de evaluación y completa el diagnóstico
                         </p>
                     </div>
                     <div className="text-right">
-                        <div className="text-sm text-gray-500">Overall Progress</div>
+                        <div className="text-sm text-gray-500">Progreso general</div>
                         <div className="text-2xl font-bold green-text">
                             {reportData.stats.completionRate}%
                         </div>
@@ -167,8 +167,8 @@ export default function ReportMenuPage() {
                         />
                     </div>
                     <div className="flex justify-between text-sm text-gray-600">
-                        <span>{reportData.stats.completedForms} of {reportData.stats.totalForms} forms completed</span>
-                        <span>{reportData.stats.totalForms - reportData.stats.completedForms} remaining</span>
+                        <span>{reportData.stats.completedForms} de {reportData.stats.totalForms} formularios completados</span>
+                        <span>{reportData.stats.totalForms - reportData.stats.completedForms} restantes</span>
                     </div>
                 </CardContent>
             </Card>
@@ -180,10 +180,10 @@ export default function ReportMenuPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center text-xl">
                             <ZoomIn className="h-6 w-6 mr-3 text-blue-600" />
-                            Zoom In Perspective
+                            Perspectiva Zoom In
                         </CardTitle>
                         <p className="text-gray-600">
-                            Detailed internal assessment focusing on specific capabilities and skills
+                            Evaluación interna detallada enfocada en capacidades y habilidades específicas
                         </p>
                     </CardHeader>
                     <CardContent>
@@ -197,7 +197,7 @@ export default function ReportMenuPage() {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-gray-500 py-4">No zoom-in forms available</p>
+                                <p className="text-sm text-gray-500 py-4">Sin formularios Zoom In disponibles</p>
                             )}
                         </div>
                         
@@ -207,7 +207,7 @@ export default function ReportMenuPage() {
                             disabled={reportData.zoomInForms.length === 0}
                         >
                             <ZoomIn className="h-4 w-4 mr-2" />
-                            Start Zoom In Assessment
+                            Iniciar Evaluación Zoom In
                         </Button>
                     </CardContent>
                 </Card>
@@ -217,10 +217,10 @@ export default function ReportMenuPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center text-xl">
                             <ZoomOut className="h-6 w-6 mr-3 text-purple-600" />
-                            Zoom Out Perspective
+                            Perspectiva Zoom Out
                         </CardTitle>
                         <p className="text-gray-600">
-                            High-level strategic assessment focusing on overall organizational maturity
+                            Evaluación estratégica de alto nivel enfocada en la madurez organizacional general
                         </p>
                     </CardHeader>
                     <CardContent>
@@ -234,7 +234,7 @@ export default function ReportMenuPage() {
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-sm text-gray-500 py-4">No zoom-out forms available</p>
+                                <p className="text-sm text-gray-500 py-4">Sin formularios Zoom Out disponibles</p>
                             )}
                         </div>
                         
@@ -244,7 +244,7 @@ export default function ReportMenuPage() {
                             disabled={reportData.zoomOutForms.length === 0}
                         >
                             <ZoomOut className="h-4 w-4 mr-2" />
-                            Start Zoom Out Assessment
+                            Iniciar Evaluación Zoom Out
                         </Button>
                     </CardContent>
                 </Card>
@@ -259,7 +259,7 @@ export default function ReportMenuPage() {
                         className="flex items-center"
                     >
                         <FileText className="h-4 w-4 mr-2" />
-                        View Current Results
+                        Ver Resultados Actuales
                     </Button>
                 )}
                 
@@ -269,7 +269,7 @@ export default function ReportMenuPage() {
                         className="bg-green-600 hover:bg-green-700 text-white"
                     >
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Finish Report
+                        Finalizar Reporte
                     </Button>
                 )}
             </div>

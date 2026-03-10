@@ -13,13 +13,13 @@ const resetSchema = z
     .object({
         password: z
             .string()
-            .min(8, "Password must be at least 8 characters")
-            .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-            .regex(/[0-9]/, "Must contain at least one number"),
+            .min(8, "La contraseña debe tener al menos 8 caracteres")
+            .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
+            .regex(/[0-9]/, "Debe contener al menos un número"),
         confirmPassword: z.string(),
     })
     .refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords do not match",
+        message: "Las contraseñas no coinciden",
         path: ["confirmPassword"],
     });
 
@@ -64,13 +64,13 @@ export default function ResetPasswordPage() {
 
             const response = await res.json();
             if (res.ok) {
-                setMessage("Password reset successfully! Redirecting to login...");
+                setMessage("¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...");
                 setTimeout(() => router.push("/auth/card"), 3000);
             } else {
-                setError(response.error || "Something went wrong");
+                setError(response.error || "Algo salió mal");
             }
         } catch {
-            setError("Error resetting password. Try again.");
+            setError("Error al restablecer la contraseña. Intenta de nuevo.");
         } finally {
             setLoading(false);
         }
@@ -78,20 +78,20 @@ export default function ResetPasswordPage() {
 
     // Mientras aún no tenemos token (render del cliente)
     if (token === null) {
-        return <p className={styles.error}>Loading...</p>;
+        return <p className={styles.error}>Cargando...</p>;
     }
 
     // Token inválido o ausente
     if (!token) {
-        return <p className={styles.error}>Invalid reset link</p>;
+        return <p className={styles.error}>Enlace de restablecimiento inválido</p>;
     }
 
     // Token válido
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-                <h2 className={styles.title}>Reset Password</h2>
-                <p className={styles.subtitle}>Enter your new password below</p>
+                <h2 className={styles.title}>Restablecer contraseña</h2>
+                <p className={styles.subtitle}>Ingresa tu nueva contraseña a continuación</p>
 
                 <div className={`${styles.inputGroup} ${styles.passwordWrapper}`}>
                     <input
@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
                         disabled={loading || !!message}
                     />
                     <label htmlFor="password" className={styles.label}>
-                        New Password
+                        Nueva contraseña
                     </label>
 
                     <button
@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className={styles.eyeButton}
                         disabled={loading || !!message}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -131,7 +131,7 @@ export default function ResetPasswordPage() {
                         disabled={loading || !!message}
                     />
                     <label htmlFor="confirmPassword" className={styles.label}>
-                        Confirm Password
+                        Confirmar contraseña
                     </label>
 
                     <button
@@ -139,7 +139,7 @@ export default function ResetPasswordPage() {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className={styles.eyeButton}
                         disabled={loading || !!message}
-                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                        aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -154,7 +154,7 @@ export default function ResetPasswordPage() {
                     className={styles.button}
                     disabled={loading || !!message} // Deshabilitar si hay mensaje de éxito
                 >
-                    {loading ? "Resetting..." : "Reset Password"}
+                    {loading ? "Restableciendo..." : "Restablecer contraseña"}
                 </button>
 
                 {error && <p className={styles.error}>{error}</p>}

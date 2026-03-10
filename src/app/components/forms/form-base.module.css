@@ -166,6 +166,29 @@
     background-color: #265239;
 }
 
+.backButton {
+    margin-top: 1rem;
+    background-color: #757c81;
+    color: white;
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+
+.backButton:hover {
+    background-color: #5a6268;
+}
+
+.buttonGroup {
+    display: flex;
+    justify-content: center;
+    gap: 5rem;
+}
+
 /* ===== Modal ===== */
 .modalOverlay {
     position: fixed;

@@ -88,7 +88,7 @@ export default function AdminZoomInPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom In</h1>
             <p className="mt-2 text-lg text-black">
-              Manage individual skill sets required to operate in digital environments.
+              Gestiona los conjuntos de habilidades individuales necesarias para operar en entornos digitales.
             </p>
           </div>
 
@@ -105,7 +105,7 @@ export default function AdminZoomInPage() {
             ))}
           </div>
 
-          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Forms</h2>
+          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
 
           {/* Skeleton para los formularios */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 justify-center">
@@ -167,7 +167,7 @@ export default function AdminZoomInPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom In</h1>
           <p className="mt-2 text-lg  text-black">
-            Manage forms of individual skills necessary to operate in digital environments.
+            Gestiona los formularios de habilidades individuales necesarias para operar en entornos digitales.
           </p> 
         </div>
 
@@ -178,11 +178,11 @@ export default function AdminZoomInPage() {
         itemsCount={totalItems}
       />
 
-      <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Forms</h2>
+      <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
 
       <div className="grid lg:grid-cols-2 grid-cols-1 gap-6 justify-center">
         {forms.length === 0 ? (
-          <p className="text-gray-500">No forms available.</p>
+          <p className="text-gray-500">No hay formularios disponibles.</p>
         ) : (
           forms.map((form) => (
             <TargetForm2
@@ -197,11 +197,11 @@ export default function AdminZoomInPage() {
                   0
                 ) || 0
               }
-              formId={form.id.toString()}
-            />
-          ))
-        )}
-      </div>
+                formId={form.id.toString()}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

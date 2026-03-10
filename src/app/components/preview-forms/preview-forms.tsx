@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import styles from "./preview-forms.module.css";
 import { FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Category {
     id: string;
@@ -44,11 +45,15 @@ interface PreviewFormsProps {
     moduleId?: number;
 }
 
+// 1. Definimos el orden de las rutas
+const STEPS = ["zoom-in", "zoom-out", "categorization"];
+
 export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps) {
     const [forms, setForms] = useState<FormCardProps[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         const fetchForms = async () => {
@@ -113,7 +118,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
     const handleStartEvaluation = (formId: string) => {
         // Determinar la ruta basándose en el módulo y el contexto actual
         const currentPath = window.location.pathname;
-        
+
         if (currentPath.includes('/admin/')) {
             // Para admin, redirigir al preview del formulario base
             if (moduleName === 'Zoom In') {
@@ -144,12 +149,33 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
         }
     };
 
+    const handleNext = () => {
+        // 2. Extraemos el prefijo (ej: /dashboard/organization) y la página actual
+        const pathParts = pathname.split("/");
+        const currentPage = pathParts.pop(); // "zoom-in"
+        const prefix = pathParts.join("/"); // "/dashboard/organization"
+
+        // 3. Buscamos el índice de la página actual en nuestro array de pasos
+        const currentIndex = STEPS.indexOf(currentPage || "");
+
+        // 4. Lógica de redirección
+        if (currentIndex !== -1 && currentIndex < STEPS.length - 1) {
+            // Si hay un siguiente paso en la lista, vamos allá
+            const nextPage = STEPS[currentIndex + 1];
+            router.push(`${prefix}/${nextPage}`);
+        } else {
+            // Si es el último paso (categorization) o no está en la lista, vuelve al inicio
+            router.push(`/dashboard`);
+        }
+    };
+
+
     if (loading) {
         return (
             <div className={styles.container}>
-                <h2 className={styles.title}>Evaluation Forms</h2>
+                <h2 className={styles.title}>Formularios de Evaluación</h2>
                 <p className={styles.subtitle}>
-                    Loading forms, please wait...
+                    Cargando formularios, por favor espere...
                 </p>
                 <div className={styles.grid}>
                     {[...Array(4)].map((_, i) => (
@@ -182,9 +208,9 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
 
     return (
         <div className={styles.container}>
-            <h2 className={styles.title}>Evaluation Forms</h2>
+            <h2 className={styles.title}>Formularios de Evaluación</h2>
             <p className={styles.subtitle}>
-                Complete the forms to evaluate different organizational aspects
+                Completa los formularios para evaluar diferentes aspectos organizacionales
             </p>
 
             <div className={styles.grid}>
@@ -202,17 +228,33 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                         </div>
 
                         <p className={styles.meta}>
-                            {form.categories} categories • {form.items} items
+                            {form.categories} categorías • {form.items} ítems
                         </p>
 
                         <button
                             className={styles.button}
                             onClick={() => handleStartEvaluation(form.id)}
                         >
-                            Start Evaluation
+                            Iniciar Evaluación
                         </button>
                     </div>
                 ))}
+            </div>
+            <div className={styles.navigationButtons}>
+                <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={() => router.back()}
+                >
+                    Atrás
+                </Button>
+                <Button
+                    variant="default"
+                    size="lg"
+                    onClick={handleNext}
+                >
+                    Siguiente
+                </Button>
             </div>
         </div>
     );
