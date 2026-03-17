@@ -1,21 +1,9 @@
 ﻿"use client";
 import React from "react";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
 export default function Page() {
-    const router = useRouter();
     const { data: session } = useSession();
-
-    const handleClick = () => {
-      const role = session?.user?.role;
-      if (!role) {
-        router.push("/login");
-        return;
-      }
-      const path = `/dashboard/${role.name}/zoom-in`;
-      router.push(path);
-    };
 
   const steps = [
     {
@@ -81,9 +69,6 @@ export default function Page() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Plataforma de Diagnóstico Estratégico para la Transformación Digital</h1>
             <p className="text-sm text-gray-600 mt-1">DiagnoSys — comprende, evalúa y proyecta la transformación digital de tu organización con una herramienta guiada, flexible y estratégica.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="hidden sm:inline-block px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-indigo-650 transition cursor-pointer" onClick={handleClick}>Iniciar Diagnóstico</button>
           </div>
         </header>
 

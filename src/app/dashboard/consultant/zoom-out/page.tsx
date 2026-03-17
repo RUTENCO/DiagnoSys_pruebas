@@ -1,6 +1,13 @@
-import PreviewForms from "@/app/components/preview-forms/preview-forms";
+"use client";
 
-export default function ZoomOutPage() {
+import { Suspense } from "react";
+import PreviewForms from "@/app/components/preview-forms/preview-forms";
+import { useSearchParams } from "next/navigation";
+
+function ZoomOutContent() {
+    const searchParams = useSearchParams();
+    const organizationId = searchParams.get("organizationId");
+
     return (
         <div className="max-h-screen w-full">
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -11,10 +18,23 @@ export default function ZoomOutPage() {
                         <br /> Analizarlas permite anticipar riesgos, aprovechar oportunidades 
                         y adaptar la estrategia digital de la organización.
                     </p>
+                    {organizationId ? (
+                        <p className="mt-2 text-sm text-gray-600">
+                            Diagnosing selected organization ID: {organizationId}
+                        </p>
+                    ) : null}
                 </div>
 
                 <PreviewForms moduleName="Zoom Out" />
             </div>
         </div>
+    );
+}
+
+export default function ZoomOutPage() {
+    return (
+        <Suspense fallback={<div className="max-w-7xl mx-auto py-8 px-4 text-gray-500">Loading...</div>}>
+            <ZoomOutContent />
+        </Suspense>
     );
 }

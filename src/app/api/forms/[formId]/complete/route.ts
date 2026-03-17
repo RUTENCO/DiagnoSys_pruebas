@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { resolveScopedUserForDiagnostics, ScopedUserError } from "@/lib/consultant-scope";
 
 interface SelectedItem {
     itemId: number;
@@ -37,9 +38,11 @@ export async function POST(
         }
 
         const formIdInt = parseInt(formId);
-        const userId = parseInt(session.user.id);
+        const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+        const targetUserId = scopedUser.targetUserId;
         
-        if (isNaN(formIdInt) || isNaN(userId)) {
+        if (isNaN(formIdInt) || isNaN(targetUserId)) {
             return NextResponse.json(
                 { error: "Invalid form ID or user ID" },
                 { status: 400 }
@@ -83,19 +86,6 @@ export async function POST(
             }
         }
 
-        // Obtener información del usuario para determinar auditId
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { roleId: true, organizationId: true }
-        });
-
-        if (!user) {
-            return NextResponse.json(
-                { error: "User not found" },
-                { status: 404 }
-            );
-        }
-
         // Obtener formulario base para obtener su nombre
         const baseForm = await prisma.form.findUnique({
             where: { id: formIdInt },
@@ -109,7 +99,7 @@ export async function POST(
             );
         }
 
-        console.log(`Creating PersonalizedForm for user ${userId} on form ${formId}:`, {
+        console.log(`Creating PersonalizedForm for user ${targetUserId} on form ${formId}:`, {
             categoriesCount: selectedCategories.length,
             totalItems: selectedCategories.reduce((sum, cat) => sum + cat.selectedItems.length, 0)
         });
@@ -119,7 +109,7 @@ export async function POST(
             // 1. Buscar si ya existe un PersonalizedForm para este usuario y formulario base
             let personalizedForm = await tx.personalizedForm.findFirst({
                 where: {
-                    userId: userId,
+                    userId: targetUserId,
                     baseFormId: formIdInt,
                     auditId: null // Por ahora solo manejamos casos sin auditoría
                 }
@@ -142,7 +132,7 @@ export async function POST(
                     data: {
                         name: `${baseForm.name} - ${new Date().toLocaleDateString()}`,
                         baseFormId: formIdInt,
-                        userId: userId,
+                        userId: targetUserId,
                         isCompleted: true,
                         completedAt: new Date()
                     }
@@ -215,7 +205,7 @@ export async function POST(
             message: "✅ Formulario personalizado guardado correctamente",
             data: {
                 baseFormId: formIdInt,
-                userId: userId,
+                userId: targetUserId,
                 personalizedFormId: result.personalizedFormId,
                 summary: {
                     categoriesEvaluated: result.categoriesProcessed,
@@ -226,10 +216,15 @@ export async function POST(
         });
 
     } catch (error) {
+        if (error instanceof ScopedUserError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
+
         console.error("Error saving personalized form:", error);
         return NextResponse.json(
             { error: "Error interno del servidor al guardar el formulario personalizado" },
             { status: 500 }
         );
     }
+
 }

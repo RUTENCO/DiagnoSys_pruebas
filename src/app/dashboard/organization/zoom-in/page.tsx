@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import PreviewForms from "@/app/components/preview-forms/preview-forms";
 
 export default function ZoomInPage() {
@@ -11,7 +12,9 @@ export default function ZoomInPage() {
                     </p>
                 </div>
 
-                <PreviewForms moduleName="Zoom In" />
+                <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+                    <PreviewForms moduleName="Zoom In" />
+                </Suspense>
             </div>
         </div>
     );

@@ -1,6 +1,13 @@
-import PreviewForms from "@/app/components/preview-forms/preview-forms";
+"use client";
 
-export default function ZoomInPage() {
+import { Suspense } from "react";
+import PreviewForms from "@/app/components/preview-forms/preview-forms";
+import { useSearchParams } from "next/navigation";
+
+function ZoomInContent() {
+    const searchParams = useSearchParams();
+    const organizationId = searchParams.get("organizationId");
+
     return (
         <div className="max-h-screen w-full">
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
@@ -9,10 +16,23 @@ export default function ZoomInPage() {
                     <p className="mt-2 text-lg  text-black">
                         Habilidades individuales necesarias para operar en entornos digitales y adoptar nuevas tecnologías.
                     </p>
+                    {organizationId ? (
+                        <p className="mt-2 text-sm text-gray-600">
+                            Diagnosing selected organization ID: {organizationId}
+                        </p>
+                    ) : null}
                 </div>
 
                 <PreviewForms moduleName="Zoom In" />
             </div>
         </div>
+    );
+}
+
+export default function ZoomInPage() {
+    return (
+        <Suspense fallback={<div className="max-w-7xl mx-auto py-8 px-4 text-gray-500">Loading...</div>}>
+            <ZoomInContent />
+        </Suspense>
     );
 }

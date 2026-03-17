@@ -1,13 +1,13 @@
-// src/middleware.ts
+// src/proxy.ts
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 export default withAuth(
-  function middleware(req) {
+  function proxy(req) {
     const { pathname } = req.nextUrl;
     const user = req.nextauth.token;
 
-    // Ignorar archivos estáticos y rutas públicas
+    // Ignorar archivos estaticos y rutas publicas
     const PUBLIC_FILE = /\.(.*)$/;
     const isPublicRoute = [
       "/auth",
@@ -61,16 +61,6 @@ export default withAuth(
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/auth (NextAuth endpoints)
-     * - auth (authentication pages)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Files with extensions (static assets)
-     */
     "/((?!api/auth|auth|_next/static|_next/image|favicon.ico|.*\\.).*)",
   ],
 };
-

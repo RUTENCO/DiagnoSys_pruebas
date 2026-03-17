@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import styles from "./preview-forms.module.css";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,12 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const contextParams = new URLSearchParams(searchParams.toString());
+    const contextQuery = contextParams.toString();
+    const withContext = (path: string) =>
+        contextQuery ? `${path}${path.includes("?") ? "&" : "?"}${contextQuery}` : path;
 
     useEffect(() => {
         const fetchForms = async () => {
@@ -131,11 +137,11 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
         } else if (currentPath.includes('/consultant/')) {
             // Para consultant, usar las rutas de consultor
             if (moduleName === 'Zoom In') {
-                router.push(`/dashboard/consultant/zoom-in/forms/${formId}`);
+                router.push(withContext(`/dashboard/consultant/zoom-in/forms/${formId}`));
             } else if (moduleName === 'Zoom Out') {
-                router.push(`/dashboard/consultant/zoom-out/forms/${formId}`);
+                router.push(withContext(`/dashboard/consultant/zoom-out/forms/${formId}`));
             } else {
-                router.push(`/dashboard/consultant/forms/${formId}`);
+                router.push(withContext(`/dashboard/consultant/forms/${formId}`));
             }
         } else {
             // Para organization, usar las rutas de organización
@@ -162,10 +168,10 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
         if (currentIndex !== -1 && currentIndex < STEPS.length - 1) {
             // Si hay un siguiente paso en la lista, vamos allá
             const nextPage = STEPS[currentIndex + 1];
-            router.push(`${prefix}/${nextPage}`);
+            router.push(withContext(`${prefix}/${nextPage}`));
         } else {
             // Si es el último paso (categorization) o no está en la lista, vuelve al inicio
-            router.push(`/dashboard`);
+            router.push(withContext(`/dashboard/consultant/diagnostics`));
         }
     };
 

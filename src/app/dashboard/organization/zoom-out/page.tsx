@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import PreviewForms from "@/app/components/preview-forms/preview-forms";
 
 export default function ZoomOutPage() {
@@ -13,7 +14,9 @@ export default function ZoomOutPage() {
                     </p>
                 </div>
 
-                <PreviewForms moduleName="Zoom Out" />
+                <Suspense fallback={<div className="text-gray-500">Loading...</div>}>
+                    <PreviewForms moduleName="Zoom Out" />
+                </Suspense>
             </div>
         </div>
     );
