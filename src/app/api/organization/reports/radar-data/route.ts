@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
  * GET /api/organization/reports/radar-data
  * Get the latest personalized forms for radar charts
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         
@@ -26,6 +26,32 @@ export async function GET() {
         }
 
         const userId = parseInt(session.user.id);
+        const reportIdParam = request.nextUrl.searchParams.get("reportId");
+        const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
+
+        if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+            return NextResponse.json(
+                { error: "Invalid report ID" },
+                { status: 400 }
+            );
+        }
+
+        if (reportIdInt !== null) {
+            const report = await prisma.report.findFirst({
+                where: {
+                    id: reportIdInt,
+                    userId,
+                },
+                select: { id: true },
+            });
+
+            if (!report) {
+                return NextResponse.json(
+                    { error: "Report not found" },
+                    { status: 404 }
+                );
+            }
+        }
         
         console.log("🔍 Fetching radar data for userId:", userId);
 
@@ -34,7 +60,8 @@ export async function GET() {
         const personalizedForms = await prisma.personalizedForm.findMany({
             where: {
                 userId: userId,
-                auditId: null // Only self-evaluations (not consultant audits)
+                auditId: null,
+                reportId: reportIdInt,
                 // Remove isCompleted restriction to see all forms
             },
             include: {

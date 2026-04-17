@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { handlePrismaError } from "@/lib/api-helpers";
+import { resolveScopedUserForDiagnostics, ScopedUserError } from "@/lib/consultant-scope";
 
 /**
  * GET /api/modules/[moduleId]/forms
@@ -30,6 +31,45 @@ export async function GET(
                 { error: "Invalid module ID" },
                 { status: 400 }
             );
+        }
+
+        const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const reportIdParam = request.nextUrl.searchParams.get("reportId");
+        const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
+        let targetUserId: number | null = null;
+
+        if (organizationId) {
+            const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+            targetUserId = scopedUser.targetUserId;
+        } else {
+            const sessionUserIdInt = parseInt(session.user.id, 10);
+            if (!Number.isNaN(sessionUserIdInt)) {
+                targetUserId = sessionUserIdInt;
+            }
+        }
+
+        if (reportIdParam && (reportIdInt === null || Number.isNaN(reportIdInt))) {
+            return NextResponse.json(
+                { error: "Invalid report ID" },
+                { status: 400 }
+            );
+        }
+
+        if (reportIdInt !== null && targetUserId !== null) {
+            const report = await prisma.report.findFirst({
+                where: {
+                    id: reportIdInt,
+                    userId: targetUserId,
+                },
+                select: { id: true },
+            });
+
+            if (!report) {
+                return NextResponse.json(
+                    { error: "Report not found" },
+                    { status: 404 }
+                );
+            }
         }
 
         // Verificar que el módulo existe
@@ -72,12 +112,42 @@ export async function GET(
             }
         });
 
+        const completedForms = targetUserId
+            ? await prisma.personalizedForm.findMany({
+                where: {
+                    userId: targetUserId,
+                    isCompleted: true,
+                    reportId: reportIdInt,
+                    baseForm: {
+                        moduleId: moduleIdInt,
+                    },
+                },
+                select: {
+                    baseFormId: true,
+                    completedAt: true,
+                },
+                orderBy: {
+                    completedAt: "desc",
+                },
+            })
+            : [];
+
+        const completedByFormId = new Map<number, Date | null>();
+        for (const entry of completedForms) {
+            if (!completedByFormId.has(entry.baseFormId)) {
+                completedByFormId.set(entry.baseFormId, entry.completedAt);
+            }
+        }
+
         // Procesar los datos para incluir estadísticas básicas
         const processedForms = forms.map(form => {
             const totalItems = form.categories.reduce((sum: number, cat) => sum + cat.items.length, 0);
+            const completedAt = completedByFormId.get(form.id) ?? null;
 
             return {
                 ...form,
+                isCompleted: completedByFormId.has(form.id),
+                completedAt,
                 stats: {
                     totalItems,
                     totalCategories: form.categories.length
@@ -92,6 +162,13 @@ export async function GET(
         });
 
     } catch (error) {
+        if (error instanceof ScopedUserError) {
+            return NextResponse.json(
+                { error: error.message },
+                { status: error.status }
+            );
+        }
+
         console.error("Error fetching forms:", error);
         return NextResponse.json(
             { error: "Internal server error" },

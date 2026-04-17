@@ -39,14 +39,40 @@ export async function POST(
 
         const formIdInt = parseInt(formId);
         const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const reportIdParam = request.nextUrl.searchParams.get("reportId");
         const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
         const targetUserId = scopedUser.targetUserId;
+        const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
         
         if (isNaN(formIdInt) || isNaN(targetUserId)) {
             return NextResponse.json(
                 { error: "Invalid form ID or user ID" },
                 { status: 400 }
             );
+        }
+
+        if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+            return NextResponse.json(
+                { error: "Invalid report ID" },
+                { status: 400 }
+            );
+        }
+
+        if (reportIdInt !== null) {
+            const report = await prisma.report.findFirst({
+                where: {
+                    id: reportIdInt,
+                    userId: targetUserId,
+                },
+                select: { id: true },
+            });
+
+            if (!report) {
+                return NextResponse.json(
+                    { error: "Report not found for this user" },
+                    { status: 404 }
+                );
+            }
         }
 
         const body = await request.json();
@@ -111,7 +137,8 @@ export async function POST(
                 where: {
                     userId: targetUserId,
                     baseFormId: formIdInt,
-                    auditId: null // Por ahora solo manejamos casos sin auditoría
+                    auditId: null,
+                    reportId: reportIdInt,
                 }
             });
 
@@ -133,6 +160,7 @@ export async function POST(
                         name: `${baseForm.name} - ${new Date().toLocaleDateString()}`,
                         baseFormId: formIdInt,
                         userId: targetUserId,
+                        reportId: reportIdInt,
                         isCompleted: true,
                         completedAt: new Date()
                     }

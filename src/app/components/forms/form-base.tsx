@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "./form-base.module.css";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface Item {
     id: number;
@@ -49,9 +49,53 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
     const [newItemName, setNewItemName] = useState("");
     const [currentCatId, setCurrentCatId] = useState<number | null>(null);
     const [errorModal, setErrorModal] = useState<string | null>(null);
+    const [nextPathAfterModal, setNextPathAfterModal] = useState<string | null>(null);
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const organizationId = searchParams.get("organizationId");
+    const routeParts = pathname.split("/").filter(Boolean);
+    const reportIndex = routeParts.indexOf("report");
+    const reportIdFromPath = reportIndex !== -1 ? routeParts[reportIndex + 1] : null;
+
+    const buildReturnPreviewPath = () => {
+        const pathParts = pathname.split("/").filter(Boolean);
+        const moduleSegment = pathParts.includes("zoom-in")
+            ? "zoom-in"
+            : pathParts.includes("zoom-out")
+                ? "zoom-out"
+                : null;
+
+        if (!moduleSegment) return null;
+
+        let basePath: string;
+        const roleSegment = pathParts[1] || "consultant";
+        const reportIndex = pathParts.indexOf("report");
+
+        if (roleSegment === "organization" && reportIndex !== -1 && pathParts[reportIndex + 1]) {
+            const reportId = pathParts[reportIndex + 1];
+            basePath = `/dashboard/organization/report/${reportId}/${moduleSegment}`;
+        } else {
+            basePath = `/dashboard/${roleSegment}/${moduleSegment}`;
+        }
+
+        const redirectParams = new URLSearchParams(searchParams.toString());
+        redirectParams.set("completedFormId", formId);
+        redirectParams.set("completedModule", moduleSegment);
+
+        const query = redirectParams.toString();
+        return query ? `${basePath}?${query}` : basePath;
+    };
+
+    const handleCloseFeedbackModal = () => {
+        const targetPath = nextPathAfterModal;
+        setErrorModal(null);
+        setNextPathAfterModal(null);
+
+        if (targetPath) {
+            router.push(targetPath);
+        }
+    };
 
     // Load real data from the API
     useEffect(() => {
@@ -191,6 +235,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
 
         if (categoriesWithSelectedItems.length === 0) {
             setErrorModal("Por favor selecciona y califica al menos un item en cualquier categoría.");
+            setNextPathAfterModal(null);
             return;
         }
 
@@ -201,6 +246,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
 
         if (itemsWithoutRating.length > 0) {
             setErrorModal("Por favor asigna una calificación a todos los items seleccionados.");
+            setNextPathAfterModal(null);
             return;
         }
 
@@ -234,8 +280,16 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
         });
 
         try {
-            const completeEndpoint = organizationId
-                ? `/api/forms/${formId}/complete?organizationId=${organizationId}`
+            const completeParams = new URLSearchParams();
+            if (organizationId) {
+                completeParams.set("organizationId", organizationId);
+            }
+            if (reportIdFromPath) {
+                completeParams.set("reportId", reportIdFromPath);
+            }
+
+            const completeEndpoint = completeParams.toString()
+                ? `/api/forms/${formId}/complete?${completeParams.toString()}`
                 : `/api/forms/${formId}/complete`;
 
             const res = await fetch(completeEndpoint, {
@@ -250,15 +304,19 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                 throw new Error(responseData.error || `Error ${res.status}: ${res.statusText}`);
             }
 
+            const returnPath = buildReturnPreviewPath();
+
             setErrorModal(`${responseData.message} 
             
 📊 Resumen:
 • Categorías evaluadas: ${responseData.data.summary.categoriesEvaluated}
 • Items evaluados: ${responseData.data.summary.totalItemsEvaluated}
 • Nuevos items creados: ${responseData.data.summary.newItemsCreated}`);
+            setNextPathAfterModal(returnPath);
         } catch (err) {
             console.error("Error submitting form:", err);
             setErrorModal(err instanceof Error ? err.message : "Error al enviar la evaluación. Por favor intenta de nuevo.");
+            setNextPathAfterModal(null);
         }
     };
 
@@ -420,7 +478,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                         <p>{errorModal}</p>
                         <button
                             className={styles.confirmButton}
-                            onClick={() => setErrorModal(null)}
+                            onClick={handleCloseFeedbackModal}
                         >
                             OK
                         </button>

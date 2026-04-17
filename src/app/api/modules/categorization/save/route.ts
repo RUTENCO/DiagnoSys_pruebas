@@ -30,21 +30,41 @@ export async function GET(req: Request) {
     }
 
     const organizationId = new URL(req.url).searchParams.get("organizationId");
+    const reportIdParam = new URL(req.url).searchParams.get("reportId");
+    const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
     const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+
+    if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+      return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
+
+    if (reportIdInt !== null) {
+      const report = await prisma.report.findFirst({
+        where: {
+          id: reportIdInt,
+          userId: scopedUser.targetUserId,
+        },
+        select: { id: true },
+      });
+
+      if (!report) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+    }
 
     const [lastOpportunity, lastNeed, lastProblem] = await Promise.all([
       prisma.opportunity.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
       prisma.need.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
       prisma.problem.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
@@ -67,17 +87,17 @@ export async function GET(req: Request) {
 
     const [opportunities, needs, problems] = await Promise.all([
       prisma.opportunity.findMany({
-        where: { userId: scopedUser.targetUserId, createdAt: { gte: start, lt: end } },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
         orderBy: { id: "asc" },
         select: { name: true },
       }),
       prisma.need.findMany({
-        where: { userId: scopedUser.targetUserId, createdAt: { gte: start, lt: end } },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
         orderBy: { id: "asc" },
         select: { name: true },
       }),
       prisma.problem.findMany({
-        where: { userId: scopedUser.targetUserId, createdAt: { gte: start, lt: end } },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
         orderBy: { id: "asc" },
         select: { name: true },
       }),
@@ -111,7 +131,27 @@ export async function POST(req: Request) {
     }
 
     const organizationId = new URL(req.url).searchParams.get("organizationId");
+    const reportIdParam = new URL(req.url).searchParams.get("reportId");
+    const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
     const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+
+    if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+      return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
+
+    if (reportIdInt !== null) {
+      const report = await prisma.report.findFirst({
+        where: {
+          id: reportIdInt,
+          userId: scopedUser.targetUserId,
+        },
+        select: { id: true },
+      });
+
+      if (!report) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+    }
 
     const body: SaveRequestBody = await req.json();
     const { opportunities, needs, problems } = body;
@@ -132,6 +172,7 @@ export async function POST(req: Request) {
           data: cleanOpportunities.map((o) => ({
             name: o.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });
@@ -142,6 +183,7 @@ export async function POST(req: Request) {
           data: cleanNeeds.map((n) => ({
             name: n.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });
@@ -152,6 +194,7 @@ export async function POST(req: Request) {
           data: cleanProblems.map((p) => ({
             name: p.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });

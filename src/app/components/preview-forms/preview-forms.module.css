@@ -48,6 +48,8 @@
     display: flex;
     flex-direction: column;
     min-height: 260px;
+    position: relative;
+    overflow: hidden;
     transition: transform .2s ease, box-shadow .2s ease;
 }
 
@@ -74,6 +76,14 @@
     gap: 0.75rem;
 }
 
+.headerStatus {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .icon {
     font-size: 1.4rem;
     color: #55A7FF;
@@ -92,9 +102,15 @@
 }
 
 .meta {
-    margin: 0.8rem 0 1.2rem 0;
+    margin: 0;
+    padding-right: 2.8rem;
     font-size: 0.85rem;
     color: #222;
+}
+
+.metaFloatingRow {
+    position: relative;
+    margin: 0.8rem 0 1.2rem 0;
 }
 
 .button {
@@ -110,6 +126,36 @@
 
 .button:hover {
     background: #265239;
+}
+
+.completedCard {
+    border: 2px solid #2E6347;
+    box-shadow: 0 10px 30px rgba(46, 99, 71, 0.45);
+}
+
+.completionMarker {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    background: #1f7a4e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 14px rgba(10, 82, 49, 0.45);
+    z-index: 3;
+}
+
+.completedButton {
+    background: #24573d;
+}
+
+.completedButton:hover {
+    background: #1d4933;
 }
 
 .navigationButtons {

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import styles from "./preview-forms.module.css";
-import { FileText } from "lucide-react";
+import { CheckCircle2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Category {
@@ -29,6 +29,8 @@ interface Form {
     description: string;
     tag: string | null;
     categories: Category[];
+    isCompleted?: boolean;
+    completedAt?: string | null;
 }
 
 interface FormCardProps {
@@ -38,6 +40,8 @@ interface FormCardProps {
     categories: number;
     items: number;
     tag: string;
+    isCompleted: boolean;
+    completedAt?: string | null;
 }
 
 interface PreviewFormsProps {
@@ -46,7 +50,7 @@ interface PreviewFormsProps {
 }
 
 // 1. Definimos el orden de las rutas
-const STEPS = ["zoom-in", "zoom-out", "categorization"];
+const STEPS = ["zoom-in", "zoom-out", "categorization", "prioritization", "reports"];
 
 export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps) {
     const [forms, setForms] = useState<FormCardProps[]>([]);
@@ -60,6 +64,23 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
     const contextQuery = contextParams.toString();
     const withContext = (path: string) =>
         contextQuery ? `${path}${path.includes("?") ? "&" : "?"}${contextQuery}` : path;
+    const pathParts = pathname.split("/").filter(Boolean);
+    const reportIndex = pathParts.indexOf("report");
+    const reportId = reportIndex !== -1 ? pathParts[reportIndex + 1] : null;
+
+    const completedFormId = searchParams.get("completedFormId");
+    const completedModule = searchParams.get("completedModule");
+    const currentStep = pathname.split("/").filter(Boolean).pop();
+    const activeCompletedFormId =
+        completedFormId && (!completedModule || completedModule === currentStep)
+            ? completedFormId
+            : null;
+
+    const isFormCompleted = (form: FormCardProps) =>
+        form.isCompleted || activeCompletedFormId === String(form.id);
+
+    const allFormsCompleted =
+        forms.length > 0 && forms.every((form) => isFormCompleted(form));
 
     useEffect(() => {
         const fetchForms = async () => {
@@ -89,7 +110,21 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
 
                 if (!moduleToUse) throw new Error("Module not found");
 
-                const response = await fetch(`/api/modules/${moduleToUse.id}/forms`);
+                const formsEndpoint = contextQuery
+                    ? `/api/modules/${moduleToUse.id}/forms?${contextQuery}`
+                    : `/api/modules/${moduleToUse.id}/forms`;
+                const endpointParams = new URLSearchParams(formsEndpoint.split("?")[1] || "");
+
+                if (reportId) {
+                    endpointParams.set("reportId", reportId);
+                }
+
+                const endpointBase = `/api/modules/${moduleToUse.id}/forms`;
+                const finalEndpoint = endpointParams.toString()
+                    ? `${endpointBase}?${endpointParams.toString()}`
+                    : endpointBase;
+
+                const response = await fetch(finalEndpoint);
                 if (!response.ok) throw new Error("Failed to fetch forms");
 
                 const formsData = await response.json();
@@ -107,6 +142,8 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                         categories: form.categories.length,
                         items: totalItems,
                         tag: form.tag || "General",
+                        isCompleted: Boolean(form.isCompleted),
+                        completedAt: form.completedAt || null,
                     };
                 });
 
@@ -119,13 +156,14 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
         };
 
         fetchForms();
-    }, [moduleName, moduleId]);
+    }, [moduleName, moduleId, contextQuery, reportId]);
 
     const handleStartEvaluation = (formId: string) => {
-        // Determinar la ruta basándose en el módulo y el contexto actual
-        const currentPath = window.location.pathname;
+        const pathParts = pathname.split("/").filter(Boolean);
+        const reportIndex = pathParts.indexOf("report");
+        const reportId = reportIndex !== -1 ? pathParts[reportIndex + 1] : null;
 
-        if (currentPath.includes('/admin/')) {
+        if (pathname.includes('/admin/')) {
             // Para admin, redirigir al preview del formulario base
             if (moduleName === 'Zoom In') {
                 router.push(`/dashboard/admin/zoom-in/forms/${formId}`);
@@ -134,7 +172,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
             } else {
                 router.push(`/dashboard/admin/forms/${formId}`);
             }
-        } else if (currentPath.includes('/consultant/')) {
+        } else if (pathname.includes('/consultant/')) {
             // Para consultant, usar las rutas de consultor
             if (moduleName === 'Zoom In') {
                 router.push(withContext(`/dashboard/consultant/zoom-in/forms/${formId}`));
@@ -145,17 +183,26 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
             }
         } else {
             // Para organization, usar las rutas de organización
+            if (!reportId) {
+                setError("No se encontró reportid en la ruta actual.");
+                return;
+            }
+
             if (moduleName === 'Zoom In') {
-                router.push(`/dashboard/organization/zoom-in/forms/${formId}`);
+                router.push(`/dashboard/organization/report/${reportId}/zoom-in/forms/${formId}`);
             } else if (moduleName === 'Zoom Out') {
-                router.push(`/dashboard/organization/zoom-out/forms/${formId}`);
+                router.push(`/dashboard/organization/report/${reportId}/zoom-out/forms/${formId}`);
             } else {
-                router.push(`/dashboard/organization/forms/${formId}`);
+                router.push(`/dashboard/organization/report/${reportId}/forms/${formId}`);
             }
         }
     };
 
     const handleNext = () => {
+        if (!allFormsCompleted) {
+            return;
+        }
+
         // 2. Extraemos el prefijo (ej: /dashboard/organization) y la página actual
         const pathParts = pathname.split("/");
         const currentPage = pathParts.pop(); // "zoom-in"
@@ -170,9 +217,35 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
             const nextPage = STEPS[currentIndex + 1];
             router.push(withContext(`${prefix}/${nextPage}`));
         } else {
-            // Si es el último paso (categorization) o no está en la lista, vuelve al inicio
+            // Si es el último paso (reports) o no está en la lista, vuelve al inicio
             router.push(withContext(`/dashboard/consultant/diagnostics`));
         }
+    };
+
+    const handleBack = () => {
+        const pathParts = pathname.split("/");
+        const currentPage = pathParts.pop();
+        const prefix = pathParts.join("/");
+        const roleSegment = pathname.split("/")[2] || "consultant";
+
+        const currentIndex = STEPS.indexOf(currentPage || "");
+
+        if (currentIndex > 0) {
+            const previousPage = STEPS[currentIndex - 1];
+            router.push(withContext(`${prefix}/${previousPage}`));
+            return;
+        }
+
+        if (prefix.includes("/report/")) {
+            if (roleSegment === "organization") {
+                router.push(withContext(`/dashboard/organization/report`));
+            } else {
+                router.push(withContext(`/dashboard/${roleSegment}/reports`));
+            }
+            return;
+        }
+
+        router.push(withContext(`/dashboard/${roleSegment}/diagnostics`));
     };
 
 
@@ -220,37 +293,52 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
             </p>
 
             <div className={styles.grid}>
-                {forms.map((form) => (
-                    <div key={form.id} className={styles.card}>
+                {forms.map((form) => {
+                    const isCompleted = isFormCompleted(form);
+
+                    return (
+                    <div
+                        key={form.id}
+                        className={`${styles.card} ${isCompleted ? styles.completedCard : ""}`}
+                    >
                         <div className={styles.cardContent}>
                             <div className={styles.header}>
                                 <div className={styles.headerLeft}>
                                     <FileText className={styles.icon} />
                                     <h3 className={styles.titleCard}>{form.title}</h3>
                                 </div>
-                                <span className={styles.tag}>{form.tag}</span>
+                                <div className={styles.headerStatus}>
+                                    <span className={styles.tag}>{form.tag}</span>
+                                </div>
                             </div>
                             <p className={styles.description}>{form.description}</p>
                         </div>
 
-                        <p className={styles.meta}>
-                            {form.categories} categorías • {form.items} ítems
-                        </p>
+                        <div className={styles.metaFloatingRow}>
+                            <p className={styles.meta}>
+                                {form.categories} categorías • {form.items} ítems
+                            </p>
+                            {isCompleted && (
+                                <div className={styles.completionMarker} title="Formulario completado">
+                                    <CheckCircle2 size={20} />
+                                </div>
+                            )}
+                        </div>
 
                         <button
-                            className={styles.button}
+                            className={`${styles.button} ${isCompleted ? styles.completedButton : ""}`}
                             onClick={() => handleStartEvaluation(form.id)}
                         >
-                            Iniciar Evaluación
+                            {isCompleted ? "Evaluación completada" : "Iniciar Evaluación"}
                         </button>
                     </div>
-                ))}
+                )})}
             </div>
             <div className={styles.navigationButtons}>
                 <Button
                     variant="secondary"
                     size="lg"
-                    onClick={() => router.back()}
+                    onClick={handleBack}
                 >
                     Atrás
                 </Button>
@@ -258,6 +346,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                     variant="default"
                     size="lg"
                     onClick={handleNext}
+                    disabled={!allFormsCompleted}
                 >
                     Siguiente
                 </Button>

@@ -27,6 +27,29 @@ export async function GET() {
 
         const userId = parseInt(session.user.id);
 
+        const [zoomInTotalExpected, zoomOutTotalExpected] = await Promise.all([
+            prisma.form.count({
+                where: {
+                    module: {
+                        name: {
+                            contains: "zoom in",
+                            mode: "insensitive",
+                        },
+                    },
+                },
+            }),
+            prisma.form.count({
+                where: {
+                    module: {
+                        name: {
+                            contains: "zoom out",
+                            mode: "insensitive",
+                        },
+                    },
+                },
+            }),
+        ]);
+
         // Get all reports for this organization with stats
         const reports = await prisma.report.findMany({
             where: { userId },
@@ -49,18 +72,13 @@ export async function GET() {
                             }
                         }
                     }
-                },
-                _count: {
-                    select: {
-                        personalizedForms: true
-                    }
                 }
             },
             orderBy: { createdAt: 'desc' }
         });
 
         // Process reports with stats
-        const processedReports = reports.map(report => {
+        const processedReports = await Promise.all(reports.map(async (report) => {
             const zoomInForms = report.personalizedForms.filter(
                 form => form.baseForm.module?.name?.toLowerCase().includes('zoom in')
             );
@@ -68,9 +86,25 @@ export async function GET() {
                 form => form.baseForm.module?.name?.toLowerCase().includes('zoom out')
             );
 
-            const completedForms = report.personalizedForms.filter(form => form.isCompleted);
-            const totalForms = report.personalizedForms.length;
-            const completionRate = totalForms > 0 ? Math.round((completedForms.length / totalForms) * 100) : 0;
+            const [hasOpportunity, hasNeed, hasProblem, hasHighPriority, hasMediumPriority, hasLowPriority, hasMediumPriority2] = await Promise.all([
+                prisma.opportunity.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.need.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.problem.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.highPriority.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.mediumPriority.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.lowPriority.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+                prisma.mediumPriority2.findFirst({ where: { userId, reportId: report.id }, select: { id: true } }),
+            ]);
+
+            const zoomInCompleted = zoomInForms.filter(f => f.isCompleted).length;
+            const zoomOutCompleted = zoomOutForms.filter(f => f.isCompleted).length;
+            const completedForms = zoomInCompleted + zoomOutCompleted;
+            const totalForms = zoomInTotalExpected + zoomOutTotalExpected;
+            const completionRate = totalForms > 0 ? Math.round((completedForms / totalForms) * 100) : 0;
+            const categorizationCompleted =
+                Boolean(hasOpportunity && hasNeed && hasProblem);
+            const prioritizationCompleted =
+                Boolean(hasHighPriority && hasMediumPriority && hasLowPriority && hasMediumPriority2);
 
             return {
                 id: report.id,
@@ -82,15 +116,17 @@ export async function GET() {
                 updatedAt: report.updatedAt,
                 stats: {
                     totalForms,
-                    completedForms: completedForms.length,
+                    completedForms,
                     completionRate,
-                    zoomInTotal: zoomInForms.length,
-                    zoomInCompleted: zoomInForms.filter(f => f.isCompleted).length,
-                    zoomOutTotal: zoomOutForms.length,
-                    zoomOutCompleted: zoomOutForms.filter(f => f.isCompleted).length
+                    zoomInTotal: zoomInTotalExpected,
+                    zoomInCompleted,
+                    zoomOutTotal: zoomOutTotalExpected,
+                    zoomOutCompleted,
+                    categorizationCompleted,
+                    prioritizationCompleted,
                 }
             };
-        });
+        }));
 
         return NextResponse.json({
             reports: processedReports,
@@ -160,23 +196,37 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // Get all published forms to create personalized forms for this report
-        const publishedForms = await prisma.form.findMany({
-            where: { isPublished: true },
+        // Get all zoom forms to create personalized forms for this report
+        const reportForms = await prisma.form.findMany({
+            where: {
+                OR: [
+                    {
+                        module: {
+                            name: {
+                                contains: "zoom in",
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                    {
+                        module: {
+                            name: {
+                                contains: "zoom out",
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                ],
+            },
             include: {
                 module: {
                     select: { id: true, name: true }
                 },
-                categories: {
-                    include: {
-                        items: true
-                    }
-                }
             }
         });
 
         // Create personalized forms for this report
-        const personalizedFormsData = publishedForms.map(form => ({
+        const personalizedFormsData = reportForms.map(form => ({
             name: form.name,
             baseFormId: form.id,
             userId,
@@ -199,13 +249,15 @@ export async function POST(request: NextRequest) {
             createdAt: newReport.createdAt,
             updatedAt: newReport.updatedAt,
             stats: {
-                totalForms: publishedForms.length,
+                totalForms: reportForms.length,
                 completedForms: 0,
                 completionRate: 0,
-                zoomInTotal: publishedForms.filter(f => f.module?.name?.toLowerCase().includes('zoom in')).length,
+                zoomInTotal: reportForms.filter(f => f.module?.name?.toLowerCase().includes('zoom in')).length,
                 zoomInCompleted: 0,
-                zoomOutTotal: publishedForms.filter(f => f.module?.name?.toLowerCase().includes('zoom out')).length,
-                zoomOutCompleted: 0
+                zoomOutTotal: reportForms.filter(f => f.module?.name?.toLowerCase().includes('zoom out')).length,
+                zoomOutCompleted: 0,
+                categorizationCompleted: false,
+                prioritizationCompleted: false,
             }
         };
 

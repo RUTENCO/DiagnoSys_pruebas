@@ -23,26 +23,46 @@ export async function GET(req: Request) {
     }
 
     const organizationId = new URL(req.url).searchParams.get("organizationId");
+    const reportIdParam = new URL(req.url).searchParams.get("reportId");
+    const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
     const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+
+    if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+      return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
+
+    if (reportIdInt !== null) {
+      const report = await prisma.report.findFirst({
+        where: {
+          id: reportIdInt,
+          userId: scopedUser.targetUserId,
+        },
+        select: { id: true },
+      });
+
+      if (!report) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+    }
 
     const [lastHigh, lastMedium, lastLow, lastMedium2] = await Promise.all([
       prisma.highPriority.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
       prisma.mediumPriority.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
       prisma.lowPriority.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
       prisma.mediumPriority2.findFirst({
-        where: { userId: scopedUser.targetUserId },
+        where: { userId: scopedUser.targetUserId, reportId: reportIdInt },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       }),
@@ -70,22 +90,22 @@ export async function GET(req: Request) {
     const [highPriority, mediumPriority, lowPriority, mediumPriority2] =
       await Promise.all([
         prisma.highPriority.findMany({
-          where: { userId: scopedUser.targetUserId, createdAt: latestDate },
+          where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: latestDate },
           orderBy: { id: "asc" },
           select: { name: true },
         }),
         prisma.mediumPriority.findMany({
-          where: { userId: scopedUser.targetUserId, createdAt: latestDate },
+          where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: latestDate },
           orderBy: { id: "asc" },
           select: { name: true },
         }),
         prisma.lowPriority.findMany({
-          where: { userId: scopedUser.targetUserId, createdAt: latestDate },
+          where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: latestDate },
           orderBy: { id: "asc" },
           select: { name: true },
         }),
         prisma.mediumPriority2.findMany({
-          where: { userId: scopedUser.targetUserId, createdAt: latestDate },
+          where: { userId: scopedUser.targetUserId, reportId: reportIdInt, createdAt: latestDate },
           orderBy: { id: "asc" },
           select: { name: true },
         }),
@@ -120,7 +140,27 @@ export async function POST(req: Request) {
     }
 
     const organizationId = new URL(req.url).searchParams.get("organizationId");
+    const reportIdParam = new URL(req.url).searchParams.get("reportId");
+    const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
     const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+
+    if (reportIdParam && (reportIdInt === null || isNaN(reportIdInt))) {
+      return NextResponse.json({ error: "Invalid report ID" }, { status: 400 });
+    }
+
+    if (reportIdInt !== null) {
+      const report = await prisma.report.findFirst({
+        where: {
+          id: reportIdInt,
+          userId: scopedUser.targetUserId,
+        },
+        select: { id: true },
+      });
+
+      if (!report) {
+        return NextResponse.json({ error: "Report not found" }, { status: 404 });
+      }
+    }
 
     const body: SaveRequestBody = await req.json();
     const {
@@ -147,6 +187,7 @@ export async function POST(req: Request) {
           data: cleanHighPriority.map((item) => ({
             name: item.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });
@@ -157,6 +198,7 @@ export async function POST(req: Request) {
           data: cleanMediumPriority.map((item) => ({
             name: item.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });
@@ -167,6 +209,7 @@ export async function POST(req: Request) {
           data: cleanLowPriority.map((item) => ({
             name: item.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });
@@ -177,6 +220,7 @@ export async function POST(req: Request) {
           data: cleanMediumPriority2.map((item) => ({
             name: item.name,
             userId: scopedUser.targetUserId,
+            reportId: reportIdInt,
             createdAt: saveTimestamp,
           })),
         });

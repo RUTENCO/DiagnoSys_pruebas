@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Suspense } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DragDropContext,
   Droppable,
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "@/app/components/forms/form-base.module.css";
 
 interface Note {
@@ -44,12 +45,37 @@ interface SavedPrioritizationResponse {
 
 function PriorityQuadrantsContent() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+  const contextParams = new URLSearchParams(searchParams.toString());
+  const contextQuery = contextParams.toString();
+  const withContext = (path: string) =>
+    contextQuery ? `${path}${path.includes("?") ? "&" : "?"}${contextQuery}` : path;
+
   const organizationId = searchParams.get("organizationId");
-  const withOrganizationContext = (path: string) =>
-    organizationId ? `${path}?organizationId=${organizationId}` : path;
+
+  const pathParts = pathname.split("/").filter(Boolean);
+  const reportIndex = pathParts.indexOf("report");
+  const reportIdFromPath = reportIndex !== -1 ? pathParts[reportIndex + 1] : null;
+  const roleSegment = pathParts[1] || "consultant";
+  const stepBasePath =
+    reportIndex !== -1 && pathParts[reportIndex + 1]
+      ? `/${pathParts.slice(0, reportIndex + 2).join("/")}`
+      : `/dashboard/${roleSegment}`;
+
+  const prioritizationBackPath = withContext(`${stepBasePath}/categorization`);
+  const reportsPath = withContext(`${stepBasePath}/reports`);
+  const withScopeContext = (path: string) => {
+    const params = new URLSearchParams();
+    if (organizationId) params.set("organizationId", organizationId);
+    if (reportIdFromPath) params.set("reportId", reportIdFromPath);
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
+  };
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [errorModal, setErrorModal] = useState<string | null>(null);
+  const [feedbackModal, setFeedbackModal] = useState<string | null>(null);
+  const [nextPathAfterModal, setNextPathAfterModal] = useState<string | null>(null);
   const [quadrants, setQuadrants] = useState<{
     q1: Note[];
     q2: Note[];
@@ -67,9 +93,17 @@ function PriorityQuadrantsContent() {
   useEffect(() => {
     const fetchForms = async () => {
       try {
+        const saveParams = new URLSearchParams();
+        if (organizationId) saveParams.set("organizationId", organizationId);
+        if (reportIdFromPath) saveParams.set("reportId", reportIdFromPath);
+        const saveQuery = saveParams.toString();
+        const saveEndpoint = saveQuery
+          ? `/api/modules/priorization/save?${saveQuery}`
+          : "/api/modules/priorization/save";
+
         const [formsRes, savedRes] = await Promise.all([
           fetch("/api/modules/2/forms"),
-          fetch(withOrganizationContext("/api/modules/priorization/save"), {
+          fetch(saveEndpoint, {
             cache: "no-store",
           }),
         ]);
@@ -162,7 +196,7 @@ function PriorityQuadrantsContent() {
     };
 
     fetchForms();
-  }, []);
+  }, [organizationId, reportIdFromPath]);
 
   const handleDragEnd = (result: DropResult) => {
     const { source, destination } = result;
@@ -222,18 +256,29 @@ function PriorityQuadrantsContent() {
     };
 
     try {
-      const res = await fetch(withOrganizationContext("/api/modules/priorization/save"), {
+      const res = await fetch(withScopeContext("/api/modules/priorization/save"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) throw new Error("Error saving data");
-
-      setErrorModal("Datos guardados exitosamente ✅");
+      setFeedbackModal("Datos guardados exitosamente ✅");
+      setNextPathAfterModal(reportsPath);
     } catch (err) {
       console.error(err);
-      setErrorModal("Error saving data ");
+      setFeedbackModal("Error saving data ❌");
+      setNextPathAfterModal(null);
+    }
+  };
+
+  const handleCloseModal = () => {
+    const targetPath = nextPathAfterModal;
+    setFeedbackModal(null);
+    setNextPathAfterModal(null);
+
+    if (targetPath) {
+      router.push(targetPath);
     }
   };
 
@@ -346,29 +391,34 @@ function PriorityQuadrantsContent() {
         </div>
       </DragDropContext>
 
-      {/* Botón Guardar */}
-      <div className="mt-12 text-center">
-        <button
+      <div className="flex flex-col sm:flex-row items-center justify-center w-full mt-12 gap-4 sm:gap-6">
+        <Button
+          variant="secondary"
+          size="lg"
+          onClick={() => router.push(prioritizationBackPath)}
+          className="w-full max-w-[300px]"
+        >
+          Atrás
+        </Button>
+        <Button
+          variant="default"
+          size="lg"
           onClick={handleSave}
           disabled={!allAssigned}
-          className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors ${
-            allAssigned
-              ? "bg-primary cursor-pointer"
-              : "bg-gray-400 cursor-not-allowed"
-          }`}
+          className="w-full max-w-[300px]"
         >
-          Guardar
-        </button>
+          Siguiente
+        </Button>
       </div>
 
       {/* Modal */}
-      {errorModal && (
+      {feedbackModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.errorModal}>
-            <p>{errorModal}</p>
+            <p>{feedbackModal}</p>
             <button
               className={styles.confirmButton}
-              onClick={() => setErrorModal(null)}
+              onClick={handleCloseModal}
             >
               OK
             </button>

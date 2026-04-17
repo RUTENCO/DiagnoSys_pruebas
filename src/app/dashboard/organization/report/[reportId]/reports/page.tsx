@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import { TrendingUp, BarChart3, Radar} from "lucide-react";
 import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-radar-chart";
 import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
@@ -38,38 +39,40 @@ interface ApiResponse {
 
 export default function ReportsPage() {
     const { status } = useSession();
+    const params = useParams<{ reportid: string }>();
+    const reportId = params?.reportid;
     const [loading, setLoading] = useState(true);
     const [zoomInForms, setZoomInForms] = useState<FormData[]>([]);
     const [zoomOutForms, setZoomOutForms] = useState<FormData[]>([]);
 
     useEffect(() => {
-        if (status === "authenticated") {
+        const fetchPersonalizedForms = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(`/api/organization/reports/radar-data?reportId=${reportId}`);
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch personalized forms');
+                }
+
+                const data: ApiResponse = await response.json();
+                console.log('🎯 Frontend received data:', data);
+                console.log('🎯 ZoomIn forms:', data.zoomInForms);
+                console.log('🎯 ZoomOut forms:', data.zoomOutForms);
+
+                setZoomInForms(data.zoomInForms || []);
+                setZoomOutForms(data.zoomOutForms || []);
+            } catch (error) {
+                console.error('🚨 Error fetching personalized forms:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (status === "authenticated" && reportId) {
             fetchPersonalizedForms();
         }
-    }, [status]);
-
-    const fetchPersonalizedForms = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/organization/reports/radar-data');
-            
-            if (!response.ok) {
-                throw new Error('Failed to fetch personalized forms');
-            }
-
-            const data: ApiResponse = await response.json();
-            console.log('🎯 Frontend received data:', data);
-            console.log('🎯 ZoomIn forms:', data.zoomInForms);
-            console.log('🎯 ZoomOut forms:', data.zoomOutForms);
-            
-            setZoomInForms(data.zoomInForms || []);
-            setZoomOutForms(data.zoomOutForms || []);
-        } catch (error) {
-            console.error('🚨 Error fetching personalized forms:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [status, reportId]);
 
     if (status === "loading" || loading) {
         return (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import UserCard from "@/app/components/organisms/userCard";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { TbReport } from "react-icons/tb";
 import {
   HomeIcon,
   ZoomOutIcon,
@@ -93,11 +94,7 @@ export default function Sidebar() {
       { href: "/dashboard/consultant/reports", label: "Reportes", icon: <ZoomOutIcon /> },
     ],
     organization: [
-      { href: "/dashboard/organization/zoom-in", label: "Zoom-in", icon: <ZoomInIcon /> },
-      { href: "/dashboard/organization/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/organization/categorization", label: "Categorización", icon: <LayoutIcon /> },
-      { href: "/dashboard/organization/prioritization", label: "Priorización", icon: <ListBulletIcon /> },
-      { href: "/dashboard/organization/reports", label: "Reportes", icon: <ZoomOutIcon /> },
+      { href: "/dashboard/organization/report", label: "Reporte", icon: <TbReport /> },
     ],
   };
 

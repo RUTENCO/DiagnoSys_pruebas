@@ -19,6 +19,8 @@ interface ReportStats {
     zoomOutCompleted: number;
     zoomInTotal: number;
     zoomOutTotal: number;
+    categorizationCompleted: boolean;
+    prioritizationCompleted: boolean;
 }
 
 interface Report {
@@ -88,11 +90,11 @@ export default function OrganizationDashboard() {
     };
 
     const startReport = (reportId: number) => {
-        router.push(`/dashboard/organization/report/${reportId}/menu`);
+        router.push(`/dashboard/organization/report/${reportId}/zoom-in`);
     };
 
     const viewReport = (reportId: number) => {
-        router.push(`/dashboard/organization/report/${reportId}/view`);
+        router.push(`/dashboard/organization/report/${reportId}/reports`);
     };
 
     const formatDate = (dateString: string) => {
@@ -105,13 +107,55 @@ export default function OrganizationDashboard() {
         });
     };
 
+    const isReportCompleted = (report: Report) => {
+        const allFormsCompleted =
+            report.stats.totalForms > 0 &&
+            report.stats.completedForms >= report.stats.totalForms;
+
+        return (
+            report.isCompleted ||
+            (allFormsCompleted &&
+                report.stats.categorizationCompleted &&
+                report.stats.prioritizationCompleted)
+        );
+    };
+
+    const isReportInProgress = (report: Report) => {
+        return (
+            report.stats.completedForms > 0 ||
+            report.stats.categorizationCompleted ||
+            report.stats.prioritizationCompleted
+        );
+    };
+
     const getStatusBadge = (report: Report) => {
-        if (report.isCompleted) {
-            return <Badge className="bg-green-100 text-green-800 border-green-300">Completado</Badge>;
-        } else if (report.stats.completedForms > 0) {
-            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">En progreso</Badge>;
+        if (isReportCompleted(report)) {
+            return (
+                <Badge
+                    variant="outline"
+                    className="bg-green-100 text-green-800 border-green-300 hover:bg-green-100 cursor-default"
+                >
+                    Completado
+                </Badge>
+            );
+        } else if (isReportInProgress(report)) {
+            return (
+                <Badge
+                    variant="outline"
+                    className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100 cursor-default"
+                >
+                    En progreso
+                </Badge>
+            );
         } else {
-            return <Badge className="bg-gray-100 text-gray-800 border-gray-300">No iniciado</Badge>;
+            return (
+                <Badge
+                    variant="outline"
+                    className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100 cursor-default"
+                >
+                    No iniciado
+                </Badge>
+            );
         }
     };
 
@@ -140,18 +184,18 @@ export default function OrganizationDashboard() {
             <div className="mb-6">
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="green-interactive text-white">
+                        <Button className="default">
                             <Plus className="h-4 w-4 mr-2" />
                             Crear Nuevo Reporte
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="green-interactive ">
                         <DialogHeader>
                             <DialogTitle>Crear Nuevo Reporte</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
-                                <Label htmlFor="reportName">Nombre del reporte</Label>
+                                <Label className="mt-4" htmlFor="reportName">Nombre del reporte</Label>
                                 <Input
                                     id="reportName"
                                     value={newReportName}
@@ -160,18 +204,20 @@ export default function OrganizationDashboard() {
                                     className="mt-1"
                                 />
                             </div>
-                            <div className="flex justify-end space-x-2">
+                            <div className="flex justify-center space-x-2  w-full">
                                 <Button
-                                    variant="outline"
+                                    variant="secondary"
                                     onClick={() => setDialogOpen(false)}
                                     disabled={creating}
+                                    className="w-auto"
                                 >
                                     Cancelar
                                 </Button>
                                 <Button
+                                    variant="default"
                                     onClick={createReport}
                                     disabled={creating || !newReportName.trim()}
-                                    className="green-interactive text-white"
+                                    className="w-auto"
                                 >
                                     {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                                     Crear Reporte
@@ -195,7 +241,7 @@ export default function OrganizationDashboard() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {reports.map((report) => (
-                        <Card key={report.id} className="hover:shadow-lg transition-shadow">
+                        <Card key={report.id} className="green-interactive hover:shadow-lg transition-shadow">
                             <CardHeader>
                                 <div className="flex items-start justify-between">
                                     <div>
@@ -240,11 +286,25 @@ export default function OrganizationDashboard() {
                                             </div>
                                         </div>
                                     </div>
+                                    <div className="grid grid-cols-1 gap-2 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600">Categorización</span>
+                                            <span className={`font-medium ${report.stats.categorizationCompleted ? "text-green-700" : "text-amber-700"}`}>
+                                                {report.stats.categorizationCompleted ? "Completado" : "Pendiente"}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-gray-600">Priorización</span>
+                                            <span className={`font-medium ${report.stats.prioritizationCompleted ? "text-green-700" : "text-amber-700"}`}>
+                                                {report.stats.prioritizationCompleted ? "Completado" : "Pendiente"}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex space-x-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                     <Button
                                         onClick={() => startReport(report.id)}
-                                        className="flex-1 green-interactive text-white"
+                                            className="w-full sm:flex-1"
                                         size="sm"
                                     >
                                         <PlayCircle className="h-4 w-4 mr-2" />
@@ -255,6 +315,7 @@ export default function OrganizationDashboard() {
                                             onClick={() => viewReport(report.id)}
                                             variant="outline"
                                             size="sm"
+                                                className="w-full sm:flex-1 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition-colors"
                                         >
                                             <Eye className="h-4 w-4 mr-2" />
                                             Ver
