@@ -246,16 +246,22 @@
 }
 
 .background-in {
-  background: #93c585;           
+  background: #aabeaa;                    
   z-index: -1; /* Asegura que el texto esté por encima del fondo */
 }
 
 .green {
     background: radial-gradient(
       ellipse at right top,
-      #95DBC9 0%,
+      #9ebbb4 0%, 
+      #c0dfb0 47%,  
+      #ffffff42 100%    
+      /*#95DBC9 0%,
       #C9F7B0 47%,
       #ffffff42 100%
+      /*#95DBC9 0%,
+      #C9F7B0 47%,
+      #ffffff 100% */
     );
     z-index: -1; /* Asegura que el fondo esté detrás del contenido */
 }
@@ -263,9 +269,9 @@
 .green-interactive {
     background: radial-gradient(
       ellipse at right top,
-      #95DBC9 0%,
-      #C9F7B0 47%,
-      #ffffff 100%
+      #9ebbb4 0%, 
+      #c0dfb0 47%,  
+      #ffffff42 100%   
     );
     /* Sin z-index para mantener la interactividad */
 }

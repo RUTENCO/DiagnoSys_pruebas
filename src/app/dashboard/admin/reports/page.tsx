@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { TrendingUp, BarChart3, Radar} from "lucide-react";
 import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-radar-chart";
 import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
@@ -247,6 +248,14 @@ export default function ReportsPage() {
                     <p className="text-black">
                         Visualiza tus últimas evaluaciones personalizadas organizadas por tipo de evaluación
                     </p>
+                    <div className="mt-4">
+                        <Link
+                            href="/dashboard/admin/reports/configuration"
+                            className="inline-flex items-center rounded-md bg-[#2E6347] px-4 py-2 text-sm font-medium text-white hover:bg-[#24533b]"
+                        >
+                            Configurar criterios y formato del informe
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Overview Stats */}

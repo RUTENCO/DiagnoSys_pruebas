@@ -38,11 +38,56 @@ export async function POST(
         }
 
         const formIdInt = parseInt(formId);
+        const sessionUserIdInt = parseInt(session.user.id, 10);
         const organizationId = request.nextUrl.searchParams.get("organizationId");
         const reportIdParam = request.nextUrl.searchParams.get("reportId");
-        const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
-        const targetUserId = scopedUser.targetUserId;
         const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
+        const isConsultant = session.user.role?.name === "consultant";
+
+        let scopedUser;
+        let targetUserId: number;
+
+        if (isConsultant && !organizationId && reportIdInt !== null && !isNaN(reportIdInt)) {
+            // Fallback: if organizationId query is missing, resolve scope from report ownership.
+            const reportOwner = await prisma.report.findUnique({
+                where: { id: reportIdInt },
+                select: {
+                    userId: true,
+                    user: {
+                        select: {
+                            role: { select: { name: true } },
+                        },
+                    },
+                },
+            });
+
+            if (!reportOwner || reportOwner.user.role.name !== "organization") {
+                return NextResponse.json(
+                    { error: "Report not found for an organization user" },
+                    { status: 404 }
+                );
+            }
+
+            const hasAccessToOrganization = await prisma.audit.findFirst({
+                where: {
+                    consultantId: sessionUserIdInt,
+                    organizationUserId: reportOwner.userId,
+                },
+                select: { id: true },
+            });
+
+            if (!hasAccessToOrganization) {
+                return NextResponse.json(
+                    { error: "Consultant has no access to this organization" },
+                    { status: 403 }
+                );
+            }
+
+            targetUserId = reportOwner.userId;
+        } else {
+            scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+            targetUserId = scopedUser.targetUserId;
+        }
         
         if (isNaN(formIdInt) || isNaN(targetUserId)) {
             return NextResponse.json(

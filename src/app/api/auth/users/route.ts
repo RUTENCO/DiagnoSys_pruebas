@@ -8,9 +8,44 @@ import bcrypt from "bcryptjs";
  * GET /api/users
  * Solo el admin puede listar todos los usuarios.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Unauthorized. You must log in." },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const onlyMe = searchParams.get("me") === "true";
+
+    if (onlyMe) {
+      const user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          sector: true,
+          companySize: true,
+          role: {
+            select: {
+              name: true,
+              displayName: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      return NextResponse.json(user, { status: 200 });
+    }
 
     if (!session || session.user?.role?.name !== "admin") {
       return NextResponse.json(
@@ -61,7 +96,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, name, password, currentPassword } = await req.json();
+    const { email, name, sector, companySize, password, currentPassword } = await req.json();
 
     // Verificar si el usuario existe
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -93,6 +128,8 @@ export async function POST(req: Request) {
       where: { email },
       data: {
         name,
+        sector: sector ?? null,
+        companySize: companySize ?? null,
         ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
       },
     });

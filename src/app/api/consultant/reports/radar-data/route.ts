@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
     try {
@@ -66,8 +64,8 @@ export async function GET() {
                     select: {
                         id: true,
                         name: true,
-                        organization: {
-                            select: { name: true }
+                        organizationUser: {
+                            select: { id: true }
                         }
                     }
                 },
@@ -162,7 +160,7 @@ export async function GET() {
                     completedAt: form.completedAt,
                     audit: {
                         name: form.audit?.name || 'Independent Assessment',
-                        organization: form.audit?.organization?.name || 'Self Assessment'
+                        organizationUserId: form.audit?.organizationUser?.id || null
                     },
                     categoryData,
                     stats: {

@@ -29,13 +29,10 @@ export async function GET() {
         
         // Obtener la organización del usuario
         const user = await prisma.user.findUnique({
-            where: { id: organizationUserId },
-            include: {
-                organization: true
-            }
+            where: { id: organizationUserId }
         });
 
-        if (!user || !user.organization) {
+        if (!user) {
             return NextResponse.json(
                 { error: "Organization not found" },
                 { status: 404 }
@@ -133,9 +130,8 @@ export async function GET() {
 
         return NextResponse.json({
             organization: {
-                id: user.organization.id,
-                name: user.organization.name,
-                description: user.organization.description
+                id: user.id,
+                description: null
             },
             modules: Object.values(moduleGroups),
             stats: {

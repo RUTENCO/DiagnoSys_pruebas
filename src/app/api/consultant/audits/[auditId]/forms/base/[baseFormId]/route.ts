@@ -66,10 +66,9 @@ export async function GET(
                 consultantId: consultantId
             },
             include: {
-                organization: {
+                    organizationUser: {
                     select: {
-                        id: true,
-                        name: true
+                        id: true
                     }
                 }
             }
@@ -135,7 +134,7 @@ export async function GET(
                 audit: {
                     id: audit.id,
                     name: audit.name,
-                    organization: audit.organization
+                        organizationUser: audit.organizationUser
                 },
                 isCompleted: existingPersonalizedForm.isCompleted,
                 // progress field removed from schema
@@ -210,7 +209,7 @@ export async function GET(
             audit: {
                 id: audit.id,
                 name: audit.name,
-                organization: audit.organization
+                    organizationUser: audit.organizationUser
             },
             categories: baseForm.categories.map(cat => ({
                 id: cat.id,

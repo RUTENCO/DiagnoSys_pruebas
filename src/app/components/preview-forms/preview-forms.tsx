@@ -189,11 +189,11 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
             }
 
             if (moduleName === 'Zoom In') {
-                router.push(`/dashboard/organization/report/${reportId}/zoom-in/forms/${formId}`);
+                router.push(withContext(`/dashboard/organization/report/${reportId}/zoom-in/forms/${formId}`));
             } else if (moduleName === 'Zoom Out') {
-                router.push(`/dashboard/organization/report/${reportId}/zoom-out/forms/${formId}`);
+                router.push(withContext(`/dashboard/organization/report/${reportId}/zoom-out/forms/${formId}`));
             } else {
-                router.push(`/dashboard/organization/report/${reportId}/forms/${formId}`);
+                router.push(withContext(`/dashboard/organization/report/${reportId}/forms/${formId}`));
             }
         }
     };

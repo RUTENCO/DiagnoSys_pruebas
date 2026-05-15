@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-config'
-import type { Organization, Prisma } from '@prisma/client'
+import type { User, Prisma } from '@prisma/client'
 
 /**
  * Helper functions for API error handling and common validations
@@ -25,8 +25,8 @@ export interface AuthenticatedUser {
 export interface ValidatedParams {
     organizationId: number
     auditId: number
-    organization: Organization
-    audit: Prisma.AuditGetPayload<{ include: { consultant: true; organization: true } }>
+    organization: User
+    audit: Prisma.AuditGetPayload<{ include: { consultant: true; organizationUser: true } }>
 }
 
 
@@ -91,17 +91,18 @@ export async function validateOrganizationAndAudit(
             return null
         }
 
-        // Verificar que el usuario tenga acceso a esta organización
-        const organization = await prisma.organization.findFirst({
+        // Verificar que el usuario (owner) exista como `organization` user o que el caller tenga acceso
+        const organization = await prisma.user.findFirst({
             where: {
                 id: orgId,
+                role: { name: 'organization' },
                 OR: [
                     // Si es admin, puede acceder a cualquier organización
                     user.role.name === 'admin' ? {} : { id: -1 },
-                    // Si es la organización propietaria
-                    { users: { some: { id: user.id } } },
+                    // Si el caller es la misma organización
+                    { id: user.id },
                     // Si es consultor asignado a auditorías de esta organización
-                    { audits: { some: { consultantId: user.id } } },
+                    { organizationAudits: { some: { consultantId: user.id } } },
                 ].filter(condition => Object.keys(condition).length > 0),
             },
         })
@@ -114,19 +115,19 @@ export async function validateOrganizationAndAudit(
         const audit = await prisma.audit.findFirst({
             where: {
                 id: audId,
-                organizationId: orgId,
+                organizationUserId: orgId,
                 OR: [
                     // Si es admin, puede acceder a cualquier auditoría
                     user.role.name === 'admin' ? {} : { id: -1 },
                     // Si es consultor de esta auditoría
                     { consultantId: user.id },
-                    // Si es la organización auditada
-                    { organization: { users: { some: { id: user.id } } } },
+                    // Si es la organización auditada (caller is org user)
+                    { organizationUser: { id: user.id } },
                 ].filter(condition => Object.keys(condition).length > 0),
             },
             include: {
                 consultant: true,
-                organization: true,
+                organizationUser: true,
             },
         })
 

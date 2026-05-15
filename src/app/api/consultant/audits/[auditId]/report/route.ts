@@ -86,11 +86,13 @@ export async function GET(
                 consultantId: consultantId
             },
             include: {
-                organization: {
+                organizationUser: {
                     select: {
                         id: true,
                         name: true,
-                        description: true
+                        email: true,
+                        sector: true,
+                        companySize: true
                     }
                 },
                 consultant: {
@@ -250,7 +252,7 @@ export async function GET(
                 id: audit.id,
                 name: audit.name,
                 description: audit.description,
-                organization: audit.organization,
+                organizationUser: audit.organizationUser,
                 consultant: audit.consultant,
                 createdAt: audit.createdAt,
                 updatedAt: audit.updatedAt

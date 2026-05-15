@@ -36,8 +36,8 @@ interface FormRadarChartProps {
 // Skeleton component for loading state
 function RadarChartSkeleton({ title, description, className }: { title: string, description?: string, className?: string }) {
     return (
-        <Card className={`${className} bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm`}>
-            <CardHeader className="items-center pb-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
+        <Card className={`${className} bg-linear-to-br from-white to-gray-50 border border-gray-200 shadow-sm`}>
+            <CardHeader className="items-center pb-4 bg-linear-to-r from-green-50 to-emerald-50 border-b border-gray-100">
                 <CardTitle className="text-lg text-[#2E6347] font-semibold">{title}</CardTitle>
                 {description && (
                     <CardDescription className="text-center text-black">
@@ -108,8 +108,8 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
     // Handle empty data
     if (!data || data.length === 0) {
         return (
-            <Card className={`${className} bg-gradient-to-br from-white to-gray-50 border border-gray-200 shadow-sm`}>
-                <CardHeader className="items-center pb-4 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-gray-100">
+            <Card className={`${className} bg-linear-to-br from-white to-gray-50 border border-gray-200 shadow-sm`}>
+                <CardHeader className="items-center pb-4 bg-linear-to-r from-green-50 to-emerald-50 border-b border-gray-100">
                     <CardTitle className="text-lg text-[#2E6347] font-bold">{title}</CardTitle>
                     {description && (
                         <CardDescription className="text-center text-gray-600">
@@ -401,7 +401,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                         data.length <= 12 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
                     }`}>
                         {data.map((category, index) => (
-                            <div key={index} className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg hover:shadow-sm transition-shadow">
+                            <div key={index} className="flex justify-between items-center p-4 bg-linear-to-r from-green-50 to-emerald-50 border border-green-100 rounded-lg hover:shadow-sm transition-shadow">
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-semibold text-gray-800 text-sm" title={category.name}>
                                         {category.name}

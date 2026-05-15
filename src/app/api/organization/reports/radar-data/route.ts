@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { resolveScopedUserForDiagnostics, ScopedUserError } from "@/lib/consultant-scope";
+import { withDefaultReportConfig } from "@/lib/report-config";
+
+function getSecondRange(date: Date) {
+    const start = new Date(date);
+    start.setMilliseconds(0);
+    const end = new Date(start);
+    end.setSeconds(end.getSeconds() + 1);
+    return { start, end };
+}
 
 /**
  * GET /api/organization/reports/radar-data
@@ -18,14 +28,22 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        if (session.user.role?.name !== 'organization') {
+        const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const isOrganization = session.user.role?.name === 'organization';
+        const isConsultant = session.user.role?.name === 'consultant';
+
+        if (!isOrganization && !isConsultant) {
             return NextResponse.json(
                 { error: "Organization access required" },
                 { status: 403 }
             );
         }
 
-        const userId = parseInt(session.user.id);
+        let userId = parseInt(session.user.id, 10);
+        if (isConsultant) {
+            const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+            userId = scopedUser.targetUserId;
+        }
         const reportIdParam = request.nextUrl.searchParams.get("reportId");
         const reportIdInt = reportIdParam ? parseInt(reportIdParam, 10) : null;
 
@@ -206,13 +224,237 @@ export async function GET(request: NextRequest) {
         const zoomInData = processFormsForRadar(zoomInForms);
         const zoomOutData = processFormsForRadar(zoomOutForms);
 
+        const [lastOpportunity, lastNeed, lastProblem] = await Promise.all([
+            prisma.opportunity.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+            prisma.need.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+            prisma.problem.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+        ]);
+
+        const latestCategorizationDate = [
+            lastOpportunity?.createdAt,
+            lastNeed?.createdAt,
+            lastProblem?.createdAt,
+        ]
+            .filter(Boolean)
+            .sort((a, b) => b!.getTime() - a!.getTime())[0];
+
+        let categorizationSummary = {
+            hasData: false,
+            savedAt: null as Date | null,
+            opportunities: [] as { name: string }[],
+            needs: [] as { name: string }[],
+            problems: [] as { name: string }[],
+            totalItems: 0,
+        };
+
+        if (latestCategorizationDate) {
+            const { start, end } = getSecondRange(latestCategorizationDate);
+            const [opportunities, needs, problems] = await Promise.all([
+                prisma.opportunity.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+                prisma.need.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+                prisma.problem.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+            ]);
+
+            categorizationSummary = {
+                hasData: true,
+                savedAt: latestCategorizationDate,
+                opportunities,
+                needs,
+                problems,
+                totalItems: opportunities.length + needs.length + problems.length,
+            };
+        }
+
+        const [lastHigh, lastMedium, lastLow, lastMedium2] = await Promise.all([
+            prisma.highPriority.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+            prisma.mediumPriority.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+            prisma.lowPriority.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+            prisma.mediumPriority2.findFirst({
+                where: { userId, reportId: reportIdInt },
+                orderBy: { createdAt: "desc" },
+                select: { createdAt: true },
+            }),
+        ]);
+
+        const latestPrioritizationDate = [
+            lastHigh?.createdAt,
+            lastMedium?.createdAt,
+            lastLow?.createdAt,
+            lastMedium2?.createdAt,
+        ]
+            .filter(Boolean)
+            .sort((a, b) => b!.getTime() - a!.getTime())[0];
+
+        let prioritizationSummary = {
+            hasData: false,
+            savedAt: null as Date | null,
+            highPriority: [] as { name: string }[],
+            mediumPriority: [] as { name: string }[],
+            lowPriority: [] as { name: string }[],
+            mediumPriority2: [] as { name: string }[],
+            totalItems: 0,
+        };
+
+        if (latestPrioritizationDate) {
+            const { start, end } = getSecondRange(latestPrioritizationDate);
+            const [highPriority, mediumPriority, lowPriority, mediumPriority2] = await Promise.all([
+                prisma.highPriority.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+                prisma.mediumPriority.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+                prisma.lowPriority.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+                prisma.mediumPriority2.findMany({
+                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    orderBy: { id: "asc" },
+                    select: { name: true },
+                }),
+            ]);
+
+            prioritizationSummary = {
+                hasData: true,
+                savedAt: latestPrioritizationDate,
+                highPriority,
+                mediumPriority,
+                lowPriority,
+                mediumPriority2,
+                totalItems:
+                    highPriority.length +
+                    mediumPriority.length +
+                    lowPriority.length +
+                    mediumPriority2.length,
+            };
+        }
+
+        const actionPlanSummary = {
+            hasData: prioritizationSummary.totalItems > 0,
+            items: [
+                ...prioritizationSummary.highPriority.map((item, index) => ({
+                    order: index + 1,
+                    name: item.name,
+                    level: "Alta prioridad",
+                })),
+                ...prioritizationSummary.mediumPriority.map((item, index) => ({
+                    order: prioritizationSummary.highPriority.length + index + 1,
+                    name: item.name,
+                    level: "Prioridad media (alto impacto)",
+                })),
+                ...prioritizationSummary.mediumPriority2.map((item, index) => ({
+                    order:
+                        prioritizationSummary.highPriority.length +
+                        prioritizationSummary.mediumPriority.length +
+                        index +
+                        1,
+                    name: item.name,
+                    level: "Prioridad media (alta urgencia)",
+                })),
+                ...prioritizationSummary.lowPriority.map((item, index) => ({
+                    order:
+                        prioritizationSummary.highPriority.length +
+                        prioritizationSummary.mediumPriority.length +
+                        prioritizationSummary.mediumPriority2.length +
+                        index +
+                        1,
+                    name: item.name,
+                    level: "Baja prioridad",
+                })),
+            ],
+        };
+
+        const reportDisplayConfigRaw = await prisma.reportDisplayConfig.findUnique({
+                where: { organizationUserId: userId },
+                select: {
+                    showExecutiveSummary: true,
+                    showRadar: true,
+                    showCategorization: true,
+                    showPrioritization: true,
+                    showActionPlan: true,
+                    showScaleLegend: true,
+                    logoUrl: true,
+                    primaryColor: true,
+                    secondaryColor: true,
+                    headerTitle: true,
+                    headerSubtitle: true,
+                },
+            });
+
+        const reportDisplayConfig = withDefaultReportConfig(
+            reportDisplayConfigRaw
+                ? {
+                      showExecutiveSummary: reportDisplayConfigRaw.showExecutiveSummary,
+                      showRadar: reportDisplayConfigRaw.showRadar,
+                      showCategorization: reportDisplayConfigRaw.showCategorization,
+                      showPrioritization: reportDisplayConfigRaw.showPrioritization,
+                      showActionPlan: reportDisplayConfigRaw.showActionPlan,
+                      showScaleLegend: reportDisplayConfigRaw.showScaleLegend,
+                      logoUrl: reportDisplayConfigRaw.logoUrl,
+                      primaryColor: reportDisplayConfigRaw.primaryColor ?? undefined,
+                      secondaryColor: reportDisplayConfigRaw.secondaryColor ?? undefined,
+                      headerTitle: reportDisplayConfigRaw.headerTitle ?? undefined,
+                      headerSubtitle: reportDisplayConfigRaw.headerSubtitle,
+                  }
+                : null
+        );
+
         return NextResponse.json({
             zoomInForms: zoomInData,
             zoomOutForms: zoomOutData,
+            categorizationSummary,
+            prioritizationSummary,
+            actionPlanSummary,
+            reportDisplayConfig,
             message: "Radar data retrieved successfully"
         });
 
     } catch (error) {
+        if (error instanceof ScopedUserError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error("🚨 Error fetching radar data:", error);
         return NextResponse.json(
             { error: "Internal server error" },

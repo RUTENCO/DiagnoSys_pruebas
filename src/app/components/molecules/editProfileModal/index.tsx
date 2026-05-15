@@ -1,5 +1,6 @@
 ﻿"use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +21,9 @@ type EditProfileModalProps = {
   name: string;
   gmail: string;
   role: string;
+  sector?: string | null;
+  companySize?: string | null;
+  showSectorAndCompanySize?: boolean;
 };
 
 // Zod schema
@@ -65,8 +69,13 @@ export default function EditProfileModal({
   name,
   gmail,
   role,
+  sector,
+  companySize,
+  showSectorAndCompanySize = true,
 }: EditProfileModalProps) {
   const [open, setOpen] = useState(false);
+  const [successPopup, setSuccessPopup] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [changePassword, setChangePassword] = useState(false); // Estado para controlar el cambio de contraseña
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(editProfileSchema),
@@ -75,10 +84,14 @@ export default function EditProfileModal({
       gmail,
       password: "",
       confirmPassword: "",
-      sector: "",
-      companySize: "",
+      sector: sector ?? "",
+      companySize: companySize ?? "",
     },
   });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     reset({
@@ -86,10 +99,38 @@ export default function EditProfileModal({
       gmail,
       password: "",
       confirmPassword: "",
-      sector: "",
-      companySize: "",
+      sector: sector ?? "",
+      companySize: companySize ?? "",
     });
-  }, [name, gmail, reset]);
+  }, [name, gmail, sector, companySize, reset]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const loadCurrentProfile = async () => {
+      try {
+        const res = await fetch("/api/auth/users?me=true", { cache: "no-store" });
+        if (!res.ok) return;
+
+        const user = await res.json();
+        reset({
+          name: user.name ?? name,
+          gmail: user.email ?? gmail,
+          password: "",
+          confirmPassword: "",
+          sector: user.sector ?? "",
+          companySize: user.companySize ?? "",
+          currentPassword: "",
+          newPassword: "",
+          confirmNewPassword: "",
+        });
+      } catch {
+        // Si falla la lectura, se conservan los valores actuales del formulario.
+      }
+    };
+
+    void loadCurrentProfile();
+  }, [open, name, gmail, reset]);
 
   const onSubmit = async (data: FormData) => {
   try {
@@ -137,8 +178,11 @@ export default function EditProfileModal({
       return;
     }
 
-    alert("¡Perfil actualizado exitosamente!");
-    setOpen(false); // cerrar modal
+    setSuccessPopup(true);
+    setTimeout(() => {
+      setSuccessPopup(false);
+      setOpen(false); // cerrar modal
+    }, 3000);
   } catch (err) {
     console.error(err);
     alert("Error de conexión con el servidor");
@@ -147,17 +191,18 @@ export default function EditProfileModal({
 
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="cursor-pointer flex items-center p-1 rounded hover:scale-105 transition-transform">
-          <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> Editar perfil
-        </button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg green-interactive">
-        <DialogHeader>
-          <DialogTitle>Editar Perfil</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
+    <>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button className="cursor-pointer flex items-center p-1 rounded hover:scale-105 transition-transform">
+            <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> Editar perfil
+          </button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-lg green-interactive">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
           {/* Nombre */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
@@ -185,6 +230,7 @@ export default function EditProfileModal({
           </div>
 
           {/* Sector */}
+          {showSectorAndCompanySize && (
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="sector" className="text-right">
               Sector
@@ -201,10 +247,12 @@ export default function EditProfileModal({
               </select>
             </div>
           </div>
+          )}
 
           {/* Tamaño empresa */}
+          {showSectorAndCompanySize && (
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="companySize" className="text-right">
+            <Label htmlFor="companySize" className="text-left">
               Tamaño empresa
             </Label>
             <div className="col-span-3">
@@ -217,6 +265,7 @@ export default function EditProfileModal({
               </select>
             </div>
           </div>
+          )}
 
           {/* Rol (solo lectura) */}
           <div className="grid grid-cols-4 items-center gap-4">
@@ -234,7 +283,7 @@ export default function EditProfileModal({
           <Button
             type="button"
             onClick={() => setChangePassword(!changePassword)}
-            className="mt-2 w-auto min-w-40 bg-blue-600 hover:bg-blue-500 cursor-pointer"
+            className="mt-2 w-auto min-w-40 cursor-pointer"
           >
             {changePassword ? "Ocultar cambio de contraseña" : "Cambiar contraseña"}
           </Button>
@@ -291,11 +340,22 @@ export default function EditProfileModal({
             </>
           )}
 
-          <DialogFooter>
-            <Button type="submit" className="mt-2 w-full cursor-pointer">Guardar cambios</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <DialogFooter>
+              <Button type="submit" className="mt-2 w-full cursor-pointer">Guardar cambios</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {mounted && successPopup && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100">
+          <div className="green-interactive p-8 rounded-xl shadow-2xl text-center max-w-md mx-4">
+            <h3 className="text-2xl font-bold text-[#2E6347] mb-2">¡Perfil actualizado exitosamente! 🎉</h3>
+            <p className="text-black opacity-90">Los cambios se guardaron correctamente.</p>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

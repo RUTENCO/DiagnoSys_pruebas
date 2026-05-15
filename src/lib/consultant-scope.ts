@@ -55,7 +55,7 @@ export async function resolveScopedUserForDiagnostics(
   const hasAccessToOrganization = await prisma.audit.findFirst({
     where: {
       consultantId: sessionUser.id,
-      organizationId,
+      organizationUserId: organizationId,
     },
     select: { id: true },
   });
@@ -64,17 +64,12 @@ export async function resolveScopedUserForDiagnostics(
     throw new ScopedUserError("Consultant has no access to this organization", 403);
   }
 
-  const organizationUser = await prisma.user.findFirst({
-    where: {
-      organizationId,
-      role: {
-        name: "organization",
-      },
-    },
-    select: { id: true },
+  const organizationUser = await prisma.user.findUnique({
+    where: { id: organizationId },
+    select: { id: true, role: { select: { name: true } } },
   });
 
-  if (!organizationUser) {
+  if (!organizationUser || organizationUser.role.name !== "organization") {
     throw new ScopedUserError(
       "No organization user found for selected organization",
       404

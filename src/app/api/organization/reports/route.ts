@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
+import { resolveScopedUserForDiagnostics, ScopedUserError } from "@/lib/consultant-scope";
 
 /**
  * GET /api/organization/reports
  * Get all reports for the authenticated organization
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         
@@ -18,14 +19,23 @@ export async function GET() {
             );
         }
 
-        if (session.user.role?.name !== 'organization') {
+        const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const isOrganization = session.user.role?.name === 'organization';
+        const isConsultant = session.user.role?.name === 'consultant';
+
+        if (!isOrganization && !isConsultant) {
             return NextResponse.json(
                 { error: "Organization access required" },
                 { status: 403 }
             );
         }
 
-        const userId = parseInt(session.user.id);
+        let userId = parseInt(session.user.id, 10);
+
+        if (isConsultant) {
+            const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+            userId = scopedUser.targetUserId;
+        }
 
         const [zoomInTotalExpected, zoomOutTotalExpected] = await Promise.all([
             prisma.form.count({
@@ -134,6 +144,9 @@ export async function GET() {
         });
 
     } catch (error) {
+        if (error instanceof ScopedUserError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error("🚨 Error fetching reports:", error);
         return NextResponse.json(
             { error: "Internal server error" },
@@ -157,14 +170,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (session.user.role?.name !== 'organization') {
+        const organizationId = request.nextUrl.searchParams.get("organizationId");
+        const isOrganization = session.user.role?.name === 'organization';
+        const isConsultant = session.user.role?.name === 'consultant';
+
+        if (!isOrganization && !isConsultant) {
             return NextResponse.json(
                 { error: "Organization access required" },
                 { status: 403 }
             );
         }
 
-        const userId = parseInt(session.user.id);
+        let userId = parseInt(session.user.id, 10);
+
+        if (isConsultant) {
+            const scopedUser = await resolveScopedUserForDiagnostics(session.user.id, organizationId);
+            userId = scopedUser.targetUserId;
+        }
         const { name } = await request.json();
 
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -267,6 +289,9 @@ export async function POST(request: NextRequest) {
         }, { status: 201 });
 
     } catch (error) {
+        if (error instanceof ScopedUserError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error("🚨 Error creating report:", error);
         return NextResponse.json(
             { error: "Internal server error" },

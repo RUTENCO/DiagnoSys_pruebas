@@ -6,6 +6,8 @@ export default withAuth(
   function proxy(req) {
     const { pathname } = req.nextUrl;
     const user = req.nextauth.token;
+    const rawRole = typeof user?.role === "string" ? user.role : user?.role?.name;
+    const roleName = rawRole?.toLowerCase();
 
     // Ignorar archivos estaticos y rutas publicas
     const PUBLIC_FILE = /\.(.*)$/;
@@ -31,23 +33,25 @@ export default withAuth(
     // Rutas protegidas por rol
     if (
       (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/api/admin")) &&
-      user?.role?.name !== "admin"
+      roleName !== "admin"
     ) {
       return NextResponse.redirect(new URL("/auth/card", req.url));
     }
 
     if (
       (pathname.startsWith("/dashboard/consultant") || pathname.startsWith("/api/consultant")) &&
-      user?.role?.name !== "consultant"
+      roleName !== "consultant"
     ) {
       return NextResponse.redirect(new URL("/auth/card", req.url));
     }
 
-    if (
-      (pathname.startsWith("/dashboard/organization") || pathname.startsWith("/api/organization")) &&
-      user?.role?.name !== "organization"
-    ) {
-      return NextResponse.redirect(new URL("/auth/card", req.url));
+    if (pathname.startsWith("/dashboard/organization") || pathname.startsWith("/api/organization")) {
+      const isOrganization = roleName === "organization";
+      const isConsultant = roleName === "consultant";
+
+      if (!isOrganization && !isConsultant) {
+        return NextResponse.redirect(new URL("/auth/card", req.url));
+      }
     }
 
     return NextResponse.next();

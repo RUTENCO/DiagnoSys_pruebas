@@ -26,6 +26,10 @@ interface FormResponse {
   categories: {
     id: number;
     name: string;
+    items: {
+      id: number;
+      name: string;
+    }[];
   }[];
 }
 
@@ -82,8 +86,45 @@ function ZoomOutCategorizationContent() {
     needs: [],
     problems: [],
   });
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [noteCategoryMap, setNoteCategoryMap] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(true);
+  const scrollAreaClass = "max-h-[260px] overflow-y-auto overflow-x-visible [scrollbar-width:none] [-ms-overflow-style:none] [scrollbar-gutter:stable_both-edges] [&::-webkit-scrollbar]:hidden";
+
+  const destinationKeys = ["opportunities", "needs", "problems"] as const;
+
+  const isDestinationKey = (value: string): value is keyof typeof destinations =>
+    destinationKeys.includes(value as keyof typeof destinations);
+
+  const getSourceList = (
+    sourceId: string,
+    localCategories: Category[],
+    localDestinations: typeof destinations
+  ): Note[] | null => {
+    if (sourceId.startsWith("category-")) {
+      const sourceCategoryId = sourceId.split("-")[1];
+      return localCategories.find((c) => c.id === sourceCategoryId)?.notes ?? null;
+    }
+
+    if (isDestinationKey(sourceId)) {
+      return localDestinations[sourceId];
+    }
+
+    return null;
+  };
+
+  const toggleNoteSelection = (noteId: string) => {
+    setSelectedNoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(noteId)) {
+        next.delete(noteId);
+      } else {
+        next.add(noteId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const fetchForms = async () => {
@@ -97,7 +138,9 @@ function ZoomOutCategorizationContent() {
           : "/api/modules/categorization/save";
 
         const [formsRes, savedRes] = await Promise.all([
-          fetch("/api/modules/2/forms"),
+          fetch(saveQuery
+            ? `/api/modules/categorization/drag-items?${saveQuery}`
+            : "/api/modules/categorization/drag-items"),
           fetch(saveEndpoint),
         ]);
 
@@ -111,24 +154,34 @@ function ZoomOutCategorizationContent() {
         console.log("API response:", data);
 
         const colorPairs: [string, string][] = [
-          ["green-interactive border border-2 border-red-300", "bg-red-300"],
-          ["green-interactive border border-2 border-green-300", "bg-green-300"],
-          ["green-interactive border border-2 border-yellow-200", "bg-yellow-200"],
-          ["green-interactive border border-2 border-blue-300", "bg-blue-300"],
+          ["green-interactive border border-3 border-teal-200", "bg-teal-200"],
+          ["green-interactive border border-3 border-orange-200", "bg-orange-200"],
+          ["green-interactive border border-3 border-lime-200", "bg-lime-200"],
+          ["green-interactive border border-3 border-red-200", "bg-red-200"],
         ];
 
+        const nextNoteCategoryMap: Record<string, string> = {};
         const mappedCategories: Category[] = data.forms.map((form, index) => {
           const [light, dark] = colorPairs[index % colorPairs.length];
+          const formIdAsString = form.id.toString();
           return {
-            id: form.id.toString(),
+            id: formIdAsString,
             title: form.name,
             color: light,
-            notes: form.categories.map((cat) => ({
-              id: cat.id.toString(),
-              name: cat.name,
-              color: dark,
-            })),
+            notes: form.categories.flatMap((cat) =>
+              cat.items.map((item) => ({
+                id: item.id.toString(),
+                name: item.name,
+                color: dark,
+              }))
+            ),
           };
+        });
+
+        mappedCategories.forEach((category) => {
+          category.notes.forEach((note) => {
+            nextNoteCategoryMap[note.id] = category.id;
+          });
         });
 
         if (savedData?.hasData) {
@@ -177,8 +230,12 @@ function ZoomOutCategorizationContent() {
 
           setDestinations(restoredDestinations);
           setCategories(remainingCategories);
+          setSelectedNoteIds(new Set());
+          setNoteCategoryMap(nextNoteCategoryMap);
         } else {
           setCategories(mappedCategories);
+          setSelectedNoteIds(new Set());
+          setNoteCategoryMap(nextNoteCategoryMap);
         }
       } catch (err) {
         console.error("Error fetching forms", err);
@@ -194,47 +251,109 @@ function ZoomOutCategorizationContent() {
     const { source, destination } = result;
     if (!destination) return;
 
+    const sourceIsCategory = source.droppableId.startsWith("category-");
+    const destinationIsCategory = destination.droppableId.startsWith("category-");
+
+    // Evitar mover notas entre categorias distintas (ej: Industria -> Macroeconomicas)
+    if (sourceIsCategory && destinationIsCategory && source.droppableId !== destination.droppableId) {
+      return;
+    }
+
     // Evitar movimientos sin cambio
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
-    const newCategories = [...categories];
-    const newDestinations = { ...destinations };
+    const newCategories = categories.map((category) => ({
+      ...category,
+      notes: [...category.notes],
+    }));
+    const newDestinations = {
+      opportunities: [...destinations.opportunities],
+      needs: [...destinations.needs],
+      problems: [...destinations.problems],
+    };
 
-    // Obtener la nota que se mueve
-    let draggedNote: Note | null = null;
+    const sourceList = getSourceList(source.droppableId, newCategories, newDestinations);
+    const destinationList = getSourceList(destination.droppableId, newCategories, newDestinations);
 
-    // Si viene desde una categoría
-    if (source.droppableId.startsWith("category-")) {
-      const sourceCategoryId = source.droppableId.split("-")[1];
-      const sourceCategory = newCategories.find((c) => c.id === sourceCategoryId);
-      if (!sourceCategory) return;
-      [draggedNote] = sourceCategory.notes.splice(source.index, 1);
-    }
+    if (!sourceList || !destinationList) return;
 
-    // Si viene desde un destino (opportunities, needs o problems)
-    else if (["opportunities", "needs", "problems"].includes(source.droppableId)) {
-      const key = source.droppableId as keyof typeof destinations;
-      [draggedNote] = newDestinations[key].splice(source.index, 1);
-    }
-
+    const draggedNote = sourceList[source.index];
     if (!draggedNote) return;
 
-    // Si va hacia una categoría
-    if (destination.droppableId.startsWith("category-")) {
-      const destCategoryId = destination.droppableId.split("-")[1];
-      const destCategory = newCategories.find((c) => c.id === destCategoryId);
-      if (!destCategory) return;
-      destCategory.notes.splice(destination.index, 0, draggedNote);
+    const moveSelectedGroup = selectedNoteIds.has(draggedNote.id);
+
+    // Si el destino es Oportunidades/Necesidades/Problemas y se arrastra un item seleccionado,
+    // mover todos los seleccionados aunque provengan de categorias distintas.
+    if (moveSelectedGroup && isDestinationKey(destination.droppableId)) {
+      const destinationKey = destination.droppableId;
+      const selectedAcrossBoard = [
+        ...newCategories.flatMap((category) => category.notes),
+        ...destinationKeys.flatMap((key) => newDestinations[key]),
+      ].filter((note) => selectedNoteIds.has(note.id));
+
+      const movingNotes = selectedAcrossBoard.length ? selectedAcrossBoard : [draggedNote];
+      const movingIds = new Set(movingNotes.map((note) => note.id));
+
+      const destinationBefore = newDestinations[destinationKey];
+      const removedBeforeDestination = destinationBefore
+        .slice(0, destination.index)
+        .filter((note) => movingIds.has(note.id)).length;
+
+      const destinationIndex = destination.index - removedBeforeDestination;
+
+      newCategories.forEach((category) => {
+        category.notes = category.notes.filter((note) => !movingIds.has(note.id));
+      });
+
+      destinationKeys.forEach((key) => {
+        newDestinations[key] = newDestinations[key].filter((note) => !movingIds.has(note.id));
+      });
+
+      const insertAt = Math.max(0, Math.min(destinationIndex, newDestinations[destinationKey].length));
+      newDestinations[destinationKey].splice(insertAt, 0, ...movingNotes);
+
+      setCategories(newCategories);
+      setDestinations(newDestinations);
+      return;
     }
 
-    // Si va hacia un destino (puede ser el mismo u otro)
-    else if (["opportunities", "needs", "problems"].includes(destination.droppableId)) {
-      const key = destination.droppableId as keyof typeof destinations;
-      newDestinations[key].splice(destination.index, 0, draggedNote);
+    const selectedInSource = sourceList.filter((note) => selectedNoteIds.has(note.id));
+    const movingNotes = moveSelectedGroup && selectedInSource.length ? selectedInSource : [draggedNote];
+    const movingIds = new Set(movingNotes.map((note) => note.id));
+
+    // Si se regresa desde destino a categoria, solo permitir volver a su categoria original.
+    if (!sourceIsCategory && destinationIsCategory) {
+      const destinationCategoryId = destination.droppableId.split("-")[1];
+      const allBelongToDestinationCategory = movingNotes.every(
+        (note) => noteCategoryMap[note.id] === destinationCategoryId
+      );
+      if (!allBelongToDestinationCategory) {
+        return;
+      }
     }
+
+    const removedBeforeDestination =
+      source.droppableId === destination.droppableId
+        ? sourceList.slice(0, destination.index).filter((note) => movingIds.has(note.id)).length
+        : 0;
+
+    const destinationIndex =
+      source.droppableId === destination.droppableId
+        ? destination.index - removedBeforeDestination
+        : destination.index;
+
+    const remainingSource = sourceList.filter((note) => !movingIds.has(note.id));
+    sourceList.splice(0, sourceList.length, ...remainingSource);
+
+    const insertAt = Math.max(0, Math.min(destinationIndex, destinationList.length));
+    destinationList.splice(insertAt, 0, ...movingNotes);
 
     setCategories(newCategories);
     setDestinations(newDestinations);
+
+    if (!moveSelectedGroup) {
+      setSelectedNoteIds(new Set([draggedNote.id]));
+    }
   };
 
   if (loading) return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
@@ -290,11 +409,11 @@ function ZoomOutCategorizationContent() {
           <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
             {categories.map((category) => (
               <div key={category.id} className={`${category.color} rounded-xl p-4 shadow-md flex flex-col`}>
-                <h2 className="font-semibold text-gray-800 mb-2 text-lg">{category.title}</h2>
+                <h2 className="font-semibold text-green-800 mb-2 text-lg">{category.title}</h2>
 
                 <Droppable droppableId={`category-${category.id}`}>
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="flex flex-wrap gap-2">
+                    <div ref={provided.innerRef} {...provided.droppableProps} className={`flex flex-col gap-2 px-2 py-2 ${scrollAreaClass}`}>
                       {category.notes.map((note, index) => (
                         <Draggable key={note.id} draggableId={note.id} index={index}>
                           {(provided) => (
@@ -302,7 +421,12 @@ function ZoomOutCategorizationContent() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className={`px-3 py-2 ${note.color} text-gray-700 rounded-md shadow cursor-pointer`}
+                              className={`px-2.5 py-1.5 text-sm box-border ${note.color} text-gray-700 rounded-md shadow cursor-pointer transition ${
+                                selectedNoteIds.has(note.id)
+                                  ? "ring-2 ring-[#2E6347]"
+                                  : ""
+                              }`}
+                              onClick={() => toggleNoteSelection(note.id)}
                             >
                               {note.name}
                             </div>
@@ -332,7 +456,7 @@ function ZoomOutCategorizationContent() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="min-h-[100px] green-interactive rounded-lg shadow-md p-3 flex flex-wrap gap-2"
+                        className={`min-h-[100px] green-interactive rounded-lg shadow-md p-5 flex flex-col gap-3 ${scrollAreaClass}`}
                       >
                         {destinations[key].map((note, index) => (
                           <Draggable key={note.id} draggableId={note.id} index={index}>
@@ -341,7 +465,12 @@ function ZoomOutCategorizationContent() {
                                 ref={provided.innerRef}
                                 {...provided.draggableProps}
                                 {...provided.dragHandleProps}
-                                className={`px-3 py-2 ${note.color} rounded-md shadow text-gray-700`}
+                                className={`px-2.5 py-1.5 text-sm box-border ${note.color} rounded-md shadow text-gray-700 cursor-pointer transition ${
+                                  selectedNoteIds.has(note.id)
+                                    ? "ring-2 ring-[#2E6347]"
+                                    : ""
+                                }`}
+                                onClick={() => toggleNoteSelection(note.id)}
                               >
                                 {note.name}
                               </div>

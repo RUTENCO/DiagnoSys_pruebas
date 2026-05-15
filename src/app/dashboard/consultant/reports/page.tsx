@@ -1,50 +1,47 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { TrendingUp, BarChart3, Radar} from "lucide-react";
-import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-radar-chart";
-import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/app/components/shadcn-charts/card";
+import { Calendar, ChevronRight, Eye, Loader2, TrendingUp, BarChart3 } from "lucide-react";
 
-interface CategoryData {
-    name: string;
-    score: number;
-    maxScore: number;
-    itemCount: number;
-    totalScore: number;
-}
-
-interface FormData {
+interface ReportSummary {
     id: number;
     name: string;
-    module: string;
+    version: number;
     isCompleted: boolean;
     completedAt: string | null;
-    audit: {
-        name: string;
-        organization: string;
-    };
-    categoryData: CategoryData[];
+    createdAt: string;
     stats: {
-        totalItems: number;
-        totalScore: number;
-        avgScore: number;
-        maxPossibleScore: number;
-        completionPercentage: number;
+        totalForms: number;
+        completedForms: number;
+        completionRate: number;
     };
 }
 
 interface ApiResponse {
-    zoomInForms: FormData[];
-    zoomOutForms: FormData[];
+    organizations: Array<{
+        id: number;
+        name: string;
+        description: string | null;
+        userName: string;
+        email: string;
+        stats: {
+            reportsCount: number;
+        };
+        reports: ReportSummary[];
+    }>;
     message: string;
 }
 
 export default function ReportsPage() {
+    const router = useRouter();
     const { status } = useSession();
     const [loading, setLoading] = useState(true);
-    const [zoomInForms, setZoomInForms] = useState<FormData[]>([]);
-    const [zoomOutForms, setZoomOutForms] = useState<FormData[]>([]);
+    const [organizations, setOrganizations] = useState<ApiResponse["organizations"]>([]);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -55,24 +52,65 @@ export default function ReportsPage() {
     const fetchPersonalizedForms = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/consultant/reports/radar-data');
+            const response = await fetch('/api/consultant/reports');
             
             if (!response.ok) {
-                throw new Error('Failed to fetch personalized forms');
+                throw new Error('Failed to fetch reports');
             }
 
             const data: ApiResponse = await response.json();
-            console.log('Consultant Frontend received data:', data);
-            console.log('ZoomIn forms:', data.zoomInForms);
-            console.log('ZoomOut forms:', data.zoomOutForms);
-            
-            setZoomInForms(data.zoomInForms || []);
-            setZoomOutForms(data.zoomOutForms || []);
+            setOrganizations(data.organizations || []);
         } catch (error) {
-            console.error('Error fetching personalized forms:', error);
+            console.error('Error fetching reports:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const summary = useMemo(() => {
+        const totalOrganizations = organizations.length;
+        const totalReports = organizations.reduce((sum, org) => sum + org.stats.reportsCount, 0);
+        const completedReports = organizations.reduce(
+            (sum, org) => sum + org.reports.filter((report) => report.isCompleted).length,
+            0
+        );
+
+        return { totalOrganizations, totalReports, completedReports };
+    }, [organizations]);
+
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return "Sin fecha";
+        return new Date(dateString).toLocaleDateString('es-CO', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const openReport = (organization: { id: number; name: string }, reportId: number) => {
+        router.push(
+            `/dashboard/organization/report/${reportId}/reports?organizationId=${organization.id}&organizationName=${encodeURIComponent(organization.name)}`
+        );
+    };
+
+    const continueReport = (organization: { id: number; name: string }, reportId: number) => {
+        router.push(
+            `/dashboard/organization/report/${reportId}/zoom-in?organizationId=${organization.id}&organizationName=${encodeURIComponent(organization.name)}`
+        );
+    };
+
+    const getStatusBadge = (report: ReportSummary) => {
+        if (report.isCompleted) {
+            return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-100">Completado</Badge>;
+        }
+
+        if (report.stats.completedForms > 0) {
+            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100">Pendiente</Badge>;
+        }
+
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100">No iniciado</Badge>;
     };
 
     if (status === "loading" || loading) {
@@ -102,7 +140,7 @@ export default function ReportsPage() {
                         ))}
                     </div>
 
-                    {/* Zoom In Forms Section Skeleton */}
+                    {/* Organizations Skeleton */}
                     <div className="mb-12">
                         <div className="flex items-center mb-6">
                             <div className="h-6 w-6 bg-gray-200 rounded animate-pulse mr-2"></div>
@@ -112,58 +150,17 @@ export default function ReportsPage() {
                             {[1, 2].map((i) => (
                                 <div key={i} className="min-h-[400px] flex">
                                     <Card className="green-interactive w-full">
-                                        <CardHeader className="items-center pb-4">
-                                            <div className="h-7 w-48 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                            <div className="h-5 w-64 bg-gray-100 rounded animate-pulse"></div>
-                                        </CardHeader>
                                         <CardContent className="pb-0">
-                                            <div className="flex flex-col items-center">
-                                                {/* Radar Chart Skeleton */}
-                                                <div className="mx-auto min-h-[400px] w-full max-w-2xl flex items-center justify-center">
-                                                    <div className="relative w-80 h-80">
-                                                        {/* Animated pulse radar */}
-                                                        <div className="absolute inset-0 rounded-full border-4 border-gray-200 animate-pulse"></div>
-                                                        <div className="absolute inset-4 rounded-full border-2 border-gray-150 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                                                        <div className="absolute inset-8 rounded-full border-2 border-gray-100 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                                                        <div className="absolute inset-12 rounded-full border-2 border-gray-50 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                                                        
-                                                        {/* Skeleton labels */}
-                                                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
-                                                            <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
-                                                        </div>
-                                                        <div className="absolute top-1/4 right-0 transform translate-x-2">
-                                                            <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                                        </div>
-                                                        <div className="absolute bottom-1/4 right-0 transform translate-x-2">
-                                                            <div className="h-3 w-18 bg-gray-200 rounded animate-pulse"></div>
-                                                        </div>
-                                                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2">
-                                                            <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
-                                                        </div>
-                                                        <div className="absolute top-1/4 left-0 transform -translate-x-2">
-                                                            <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                                        </div>
+                                            <div className="h-7 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                                            <div className="h-4 w-72 bg-gray-100 rounded animate-pulse mb-4"></div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {[1, 2, 3].map((j) => (
+                                                    <div key={j} className="rounded-lg border border-gray-100 p-4">
+                                                        <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-2"></div>
+                                                        <div className="h-4 w-56 bg-gray-100 rounded animate-pulse mb-3"></div>
+                                                        <div className="h-9 w-full bg-gray-200 rounded animate-pulse"></div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Statistics Skeleton */}
-                                            <div className="mt-6 pt-4 border-t border-gray-200">
-                                                <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {[1, 2, 3, 4].map((j) => (
-                                                        <div key={j} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg">
-                                                            <div className="flex-1">
-                                                                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                                                <div className="h-3 w-16 bg-gray-100 rounded animate-pulse"></div>
-                                                            </div>
-                                                            <div className="text-right ml-3">
-                                                                <div className="h-5 w-12 bg-gray-200 rounded animate-pulse mb-1"></div>
-                                                                <div className="h-4 w-10 bg-gray-100 rounded-full animate-pulse"></div>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                ))}
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -172,59 +169,18 @@ export default function ReportsPage() {
                         </div>
                     </div>
 
-                    {/* Zoom Out Forms Section Skeleton */}
+                    {/* Empty organizations skeleton */}
                     <div className="mb-12">
                         <div className="flex items-center mb-6">
                             <div className="h-6 w-6 bg-gray-200 rounded animate-pulse mr-2"></div>
                             <div className="h-8 w-72 bg-gray-200 rounded animate-pulse"></div>
                         </div>
                         <div className="flex flex-col gap-6">
-                            <div className="min-h-[400px] flex">
+                            <div className="min-h-[220px] flex">
                                 <Card className="green-interactive w-full">
-                                    <CardHeader className="items-center pb-4">
-                                        <div className="h-7 w-56 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                        <div className="h-5 w-72 bg-gray-100 rounded animate-pulse"></div>
-                                    </CardHeader>
                                     <CardContent className="pb-0">
-                                        <div className="flex flex-col items-center">
-                                            {/* Radar Chart Skeleton */}
-                                            <div className="mx-auto min-h-[400px] w-full max-w-2xl flex items-center justify-center">
-                                                <div className="relative w-80 h-80">
-                                                    {/* Animated pulse radar */}
-                                                    <div className="absolute inset-0 rounded-full border-4 border-gray-200 animate-pulse"></div>
-                                                    <div className="absolute inset-4 rounded-full border-2 border-gray-150 animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                                                    <div className="absolute inset-8 rounded-full border-2 border-gray-100 animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                                                    <div className="absolute inset-12 rounded-full border-2 border-gray-50 animate-pulse" style={{ animationDelay: '0.9s' }}></div>
-                                                    
-                                                    {/* Different skeleton labels for variety */}
-                                                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-2">
-                                                        <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                                    </div>
-                                                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-2">
-                                                        <div className="h-3 w-18 bg-gray-200 rounded animate-pulse"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        {/* Statistics Skeleton */}
-                                        <div className="mt-6 pt-4 border-t border-gray-200">
-                                            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
-                                            <div className="grid grid-cols-1 gap-3">
-                                                {[1, 2].map((j) => (
-                                                    <div key={j} className="flex justify-between items-center p-4 border border-gray-100 rounded-lg">
-                                                        <div className="flex-1">
-                                                            <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
-                                                            <div className="h-3 w-20 bg-gray-100 rounded animate-pulse"></div>
-                                                        </div>
-                                                        <div className="text-right ml-3">
-                                                            <div className="h-5 w-12 bg-gray-200 rounded animate-pulse mb-1"></div>
-                                                            <div className="h-4 w-10 bg-gray-100 rounded-full animate-pulse"></div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <div className="h-7 w-48 bg-gray-200 rounded animate-pulse mb-4"></div>
+                                        <div className="h-4 w-72 bg-gray-100 rounded animate-pulse mb-4"></div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -241,34 +197,33 @@ export default function ReportsPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347] mb-2">
-                        Reportes de Evaluación Digital
+                        Reportes por Organización
                     </h1>
                     <p className="text-black">
-                        Visualiza tus últimas evaluaciones personalizadas organizadas por tipo de evaluación
+                        Revisa los reportes de cada organización que gestionas desde una sola vista.
                     </p>
                 </div>
 
-                {/* Overview Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 ">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <Card className="green">
-                        <CardContent className="pt-6 ">
+                        <CardContent className="pt-6">
                             <div className="flex items-center space-x-8">
-                                <BarChart3 className="h-9 w-9 text-emerald-800" />
+                                <TrendingUp className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom In</p>
-                                    <p className="text-2xl font-bold">{zoomInForms.length}</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Organizaciones</p>
+                                    <p className="text-2xl font-bold">{summary.totalOrganizations}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
-                    
+
                     <Card className="green">
                         <CardContent className="pt-6">
                             <div className="flex items-center space-x-8">
-                                <BarChart3 className="h-9 w-9 text-emerald-800" />
+                                <TrendingUp className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom Out</p>
-                                    <p className="text-2xl font-bold">{zoomOutForms.length}</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Reportes</p>
+                                    <p className="text-2xl font-bold">{summary.totalReports}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -279,69 +234,95 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-blue-500" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Total de Formularios</p>
-                                    <p className="text-2xl font-bold">{zoomInForms.length + zoomOutForms.length}</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">Completados</p>
+                                    <p className="text-2xl font-bold">{summary.completedReports}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Zoom In Forms Section */}
-                {zoomInForms.length > 0 && (
-                    <div className="mb-12">
-                        <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
-                            <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom In - Evaluación de Habilidades
-                        </h2>
-                        <div className="flex flex-col gap-6">
-                            {zoomInForms.map((form) => (
-                                <div key={form.id} className="min-h-[400px] flex">
-                                    <FormRadarChart
-                                        title={form.name}
-                                        description={`Auditoría: ${form.audit.name} | Organización: ${form.audit.organization} | Puntaje Prom: ${form.stats.avgScore}/5.0`}
-                                        data={form.categoryData}
-                                        className="w-full"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Zoom Out Forms Section */}
-                {zoomOutForms.length > 0 && (
-                    <div className="mb-12">
-                        <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
-                            <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom Out - Evaluación de Capacidades
-                        </h2>
-                        <div className="flex flex-col gap-6">
-                            {zoomOutForms.map((form) => (
-                                <div key={form.id} className="min-h-[400px] flex">
-                                    <FormRadarChart
-                                        title={form.name}
-                                        description={`Auditoría: ${form.audit.name} | Organización: ${form.audit.organization} | Puntaje Prom: ${form.stats.avgScore}/5.0`}
-                                        data={form.categoryData}
-                                        className="w-full"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                {/* Empty State */}
-                {zoomInForms.length === 0 && zoomOutForms.length === 0 && (
+                {organizations.length === 0 ? (
                     <Card className="green-interactive">
                         <CardContent className="py-12 text-center">
                             <div className="text-[#2E6347]">
                                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50 text-[#2E6347]" />
-                                <h3 className="text-lg font-medium mb-2">Sin Reportes Disponibles</h3>
-                                <p>Completa algunas evaluaciones de formularios para ver tus gráficas aquí</p>
+                                <h3 className="text-lg font-medium mb-2">Sin reportes disponibles</h3>
+                                <p>Cuando una organización genere reportes, aparecerán aquí agrupados por organización.</p>
                             </div>
                         </CardContent>
                     </Card>
+                ) : (
+                    <div className="space-y-8">
+                        {organizations.map((organization) => (
+                            <Card key={organization.id} className="green-interactive overflow-hidden">
+                                <CardContent className="pt-6">
+                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-[#2E6347] mb-2">{organization.name}</h2>
+                                            <p className="text-gray-700">{organization.description || "Sin descripción"}</p>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                                Usuario: {organization.userName} | Email: {organization.email}
+                                            </p>
+                                        </div>
+
+                                        <div className="rounded-xl border border-primary/20 bg-white/80 px-4 py-3 text-center min-w-44">
+                                            <p className="text-xs uppercase tracking-wide text-gray-500">Reportes</p>
+                                            <p className="text-3xl font-bold text-[#2E6347]">{organization.stats.reportsCount}</p>
+                                        </div>
+                                    </div>
+
+                                    {organization.reports.length === 0 ? (
+                                        <div className="rounded-lg border border-dashed border-gray-300 p-5 text-gray-600">
+                                            Aún no tiene reportes creados.
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                            {organization.reports.map((report) => (
+                                                <div key={report.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                                                    <div className="flex items-start gap-3">
+                                                        <div>
+                                                            <h3 className="text-lg font-semibold text-[#2E6347]">{report.name}</h3>
+                                                            <p className="text-sm text-gray-500">Versión {report.version}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4 space-y-2 text-sm text-gray-600">
+                                                        <p className="flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4" />
+                                                            Creado: {formatDate(report.createdAt)}
+                                                        </p>
+                                                        <p>Completados: {report.stats.completedForms}/{report.stats.totalForms}</p>
+                                                        <p>Progreso: {report.stats.completionRate}%</p>
+                                                    </div>
+
+                                                    <div className="mt-4 flex flex-col gap-2">
+                                                        <Button
+                                                            type="button"
+                                                            className="w-full bg-[#2E6347] hover:bg-[#265239] text-white"
+                                                            onClick={() => openReport(organization, report.id)}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                            Ver reporte
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            className="w-full"
+                                                            onClick={() => continueReport(organization, report.id)}
+                                                        >
+                                                            <ChevronRight className="h-4 w-4" />
+                                                            Continuar diagnóstico
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 )}
             </div>
         </div>

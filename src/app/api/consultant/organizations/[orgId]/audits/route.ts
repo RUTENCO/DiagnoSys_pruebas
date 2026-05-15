@@ -3,10 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 
-/**
- * GET /api/consultant/organizations/[orgId]/audits
- * Ver auditorías de una organización específica (solo consultant)
- */
+// GET: listar auditorías de una organización para el consultor
 export async function GET(
     request: NextRequest,
     context: { params: Promise<{ orgId: string }> }
@@ -14,85 +11,42 @@ export async function GET(
     const { orgId } = await context.params;
     try {
         const session = await getServerSession(authOptions);
-        
-        if (!session || !session.user) {
-            return NextResponse.json(
-                { error: "Authentication required" },
-                { status: 401 }
-            );
+        if (!session?.user) {
+            return NextResponse.json({ error: "Authentication required" }, { status: 401 });
         }
 
-        // Solo consultores pueden ver auditorías
         if (session.user.role?.name !== 'consultant') {
-            return NextResponse.json(
-                { error: "Consultant access required" },
-                { status: 403 }
-            );
+            return NextResponse.json({ error: "Consultant access required" }, { status: 403 });
         }
 
         const orgIdInt = parseInt(orgId);
         const consultantId = parseInt(session.user.id);
-        
-        if (isNaN(orgIdInt)) {
-            return NextResponse.json(
-                { error: "Invalid organization ID" },
-                { status: 400 }
-            );
-        }
+        if (isNaN(orgIdInt)) return NextResponse.json({ error: "Invalid organization ID" }, { status: 400 });
 
-        // Verificar que la organización existe
-        const organization = await prisma.organization.findUnique({
-            where: { id: orgIdInt },
-            select: {
-                id: true,
-                name: true,
-                description: true
-            }
+        // Buscar usuario que representa la organización
+        const organizationUser = await prisma.user.findFirst({
+            where: { id: orgIdInt, role: { name: 'organization' } },
+            select: { id: true, name: true, email: true, sector: true, companySize: true }
         });
 
-        if (!organization) {
-            return NextResponse.json(
-                { error: "Organization not found" },
-                { status: 404 }
-            );
-        }
+        if (!organizationUser) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
-        // Obtener auditorías de este consultor para esta organización
         const audits = await prisma.audit.findMany({
-            where: {
-                organizationId: orgIdInt,
-                consultantId: consultantId
-            },
+            where: { organizationUserId: orgIdInt, consultantId },
             include: {
                 personalizedForms: {
                     include: {
-                        baseForm: {
-                            select: {
-                                id: true,
-                                name: true
-                            }
-                        },
-                        _count: {
-                            select: {
-                                personalizedCategories: true
-                            }
-                        }
+                        baseForm: { select: { id: true, name: true } },
+                        _count: { select: { personalizedCategories: true } }
                     }
                 },
-                _count: {
-                    select: {
-                        personalizedForms: true
-                    }
-                }
+                _count: { select: { personalizedForms: true } }
             },
-            orderBy: {
-                createdAt: 'desc'
-            }
+            orderBy: { createdAt: 'desc' }
         });
 
-        // Procesar datos
         const processedAudits = audits.map(audit => {
-            const completedForms = audit.personalizedForms.filter(form => form.isCompleted).length;
+            const completedForms = audit.personalizedForms.filter(f => f.isCompleted).length;
             const totalForms = audit.personalizedForms.length;
             const completionRate = totalForms > 0 ? (completedForms / totalForms) * 100 : 0;
 
@@ -100,10 +54,10 @@ export async function GET(
                 id: audit.id,
                 name: audit.name,
                 description: audit.description,
-                organization: organization,
+                organization: organizationUser,
                 stats: {
                     totalForms: audit._count.personalizedForms,
-                    completedForms: completedForms,
+                    completedForms,
                     completionRate: Math.round(completionRate * 100) / 100
                 },
                 forms: audit.personalizedForms.map(form => ({
@@ -120,25 +74,15 @@ export async function GET(
             };
         });
 
-        return NextResponse.json({
-            organization: organization,
-            audits: processedAudits,
-            message: "Audits retrieved successfully"
-        });
+        return NextResponse.json({ organization: organizationUser, audits: processedAudits, message: "Audits retrieved successfully" });
 
     } catch (error) {
         console.error("Error fetching organization audits:", error);
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
 
-/**
- * POST /api/consultant/organizations/[orgId]/audits
- * Crear nueva auditoría para una organización (solo consultant)
- */
+// POST: crear auditoría para la organización (consultant)
 export async function POST(
     request: NextRequest,
     context: { params: Promise<{ orgId: string }> }
@@ -146,102 +90,37 @@ export async function POST(
     const { orgId } = await context.params;
     try {
         const session = await getServerSession(authOptions);
-        
-        if (!session || !session.user) {
-            return NextResponse.json(
-                { error: "Authentication required" },
-                { status: 401 }
-            );
-        }
-
-        // Solo consultores pueden crear auditorías
-        if (session.user.role?.name !== 'consultant') {
-            return NextResponse.json(
-                { error: "Consultant access required" },
-                { status: 403 }
-            );
-        }
+        if (!session?.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        if (session.user.role?.name !== 'consultant') return NextResponse.json({ error: "Consultant access required" }, { status: 403 });
 
         const orgIdInt = parseInt(orgId);
         const consultantId = parseInt(session.user.id);
-        
-        if (isNaN(orgIdInt)) {
-            return NextResponse.json(
-                { error: "Invalid organization ID" },
-                { status: 400 }
-            );
-        }
+        if (isNaN(orgIdInt)) return NextResponse.json({ error: "Invalid organization ID" }, { status: 400 });
 
         const { name, description } = await request.json();
+        if (!name) return NextResponse.json({ error: "Audit name is required" }, { status: 400 });
 
-        if (!name) {
-            return NextResponse.json(
-                { error: "Audit name is required" },
-                { status: 400 }
-            );
-        }
-
-        // Verificar que la organización existe
-        const organization = await prisma.organization.findUnique({
-            where: { id: orgIdInt }
-        });
-
-        if (!organization) {
-            return NextResponse.json(
-                { error: "Organization not found" },
-                { status: 404 }
-            );
-        }
+        const organizationUser = await prisma.user.findFirst({ where: { id: orgIdInt, role: { name: 'organization' } } });
+        if (!organizationUser) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
 
         const audit = await prisma.audit.create({
             data: {
                 name,
                 description: description || null,
-                consultantId: consultantId,
-                organizationId: orgIdInt
+                consultantId,
+                organizationUserId: orgIdInt
             },
             include: {
-                organization: {
-                    select: {
-                        id: true,
-                        name: true,
-                        description: true
-                    }
-                }
+                consultant: { select: { id: true, name: true } },
+                organizationUser: { select: { id: true, name: true, email: true } }
             }
         });
 
-        return NextResponse.json({
-            audit: {
-                id: audit.id,
-                name: audit.name,
-                description: audit.description,
-                organization: audit.organization,
-                stats: {
-                    totalForms: 0,
-                    completedForms: 0,
-                    avgProgress: 0
-                },
-                forms: [],
-                createdAt: audit.createdAt,
-                updatedAt: audit.updatedAt
-            },
-            message: "Audit created successfully"
-        }, { status: 201 });
+        return NextResponse.json({ audit, message: "Audit created successfully" }, { status: 201 });
 
     } catch (error) {
         console.error("Error creating audit:", error);
-        
-        if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'P2002') {
-            return NextResponse.json(
-                { error: "Audit name already exists for this consultant and organization" },
-                { status: 409 }
-            );
-        }
-
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+        if ((error as any)?.code === 'P2002') return NextResponse.json({ error: "Audit name already exists" }, { status: 409 });
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

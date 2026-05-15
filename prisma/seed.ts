@@ -1,6 +1,16 @@
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+const directDatabaseUrl = process.env.DATABASE_URL_DIRECT
+const accelerateDatabaseUrl = process.env.DATABASE_URL
+
+if (!directDatabaseUrl && !accelerateDatabaseUrl) {
+  throw new Error('DATABASE_URL_DIRECT or DATABASE_URL is not defined')
+}
+
+const prisma = directDatabaseUrl
+  ? new PrismaClient({ adapter: new PrismaPg(directDatabaseUrl) })
+  : new PrismaClient({ accelerateUrl: accelerateDatabaseUrl! })
 
 async function main() {
   console.log('🌱 Seeding database...')
