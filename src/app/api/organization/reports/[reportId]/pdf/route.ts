@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { execFileSync } from "child_process";
-import path from "path";
+import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { authOptions } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { resolveScopedUserForDiagnostics, ScopedUserError } from "@/lib/consultant-scope";
-import { withDefaultReportConfig } from "@/lib/report-config";
+import { buildReportPdfFilename, withDefaultReportConfig } from "@/lib/report-config";
 import { renderRadarChart } from "@/lib/report-charts";
 
 type RadarCategoryItem = { score: number };
@@ -20,6 +20,16 @@ type RadarFormSource = {
   baseFormId: number;
   baseForm: { module: { id: number; name: string } };
   personalizedCategories: RadarCategory[];
+};
+
+type RadarFormSummarySource = {
+  id: number;
+  name: string;
+  isCompleted: boolean;
+  completedAt: Date | null;
+  updatedAt: Date;
+  baseFormId: number;
+  baseForm: { module: { id: number; name: string } };
 };
 
 type RadarChartCategory = {
@@ -170,12 +180,7 @@ export async function GET(
       return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
-    const [categorization, high, medium, low, medium2, configRaw] = await Promise.all([
-      prisma.opportunity.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
-      prisma.highPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
-      prisma.mediumPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
-      prisma.lowPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
-      prisma.mediumPriority2.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+    const [configRaw, opportunities, needs, problems, high, medium, low, medium2] = await Promise.all([
       prisma.reportDisplayConfig.findUnique({
         where: { organizationUserId: userId },
         select: {
@@ -186,58 +191,22 @@ export async function GET(
           showActionPlan: true,
           showScaleLegend: true,
           logoUrl: true,
+          logoData: true,
+          logoContentType: true,
           primaryColor: true,
           secondaryColor: true,
           headerTitle: true,
           headerSubtitle: true,
         },
       }),
+      prisma.opportunity.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.need.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.problem.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.highPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.mediumPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.lowPriority.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
+      prisma.mediumPriority2.findMany({ where: { reportId: reportIdInt, userId }, select: { name: true }, orderBy: { id: "asc" } }),
     ]);
-
-    // Also fetch personalized forms to render zoom-in / zoom-out charts like radar-data route
-    const personalizedForms = await prisma.personalizedForm.findMany({
-      where: {
-        userId: userId,
-        auditId: null,
-        reportId: reportIdInt,
-      },
-      include: {
-        baseForm: {
-          select: {
-            id: true,
-            name: true,
-            tag: true,
-            module: { select: { id: true, name: true } },
-          },
-        },
-        personalizedCategories: {
-          include: { personalizedItems: { select: { id: true, name: true, score: true, isCustom: true } } },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
-
-    // group latest forms by module+baseForm
-    const latestFormsByModule = new Map<string, RadarFormSource>();
-    personalizedForms.forEach((form) => {
-      const moduleId = form.baseForm.module.id;
-      const baseFormId = form.baseFormId;
-      const key = `${moduleId}-${baseFormId}`;
-      const existing = latestFormsByModule.get(key);
-      if (!existing || new Date(form.updatedAt) > new Date(existing.updatedAt)) {
-        latestFormsByModule.set(key, form as RadarFormSource);
-      }
-    });
-
-    const latestForms = Array.from(latestFormsByModule.values());
-
-    const processFormsForRadar = (forms: RadarFormSource[]): RadarForm[] => forms.map(buildRadarForm);
-
-    const zoomInForms = latestForms.filter((f) => f.baseForm.module.name.toLowerCase().includes("zoom in"));
-    const zoomOutForms = latestForms.filter((f) => f.baseForm.module.name.toLowerCase().includes("zoom out"));
-
-    const zoomInData = processFormsForRadar(zoomInForms);
-    const zoomOutData = processFormsForRadar(zoomOutForms);
 
     const config = withDefaultReportConfig(
       configRaw
@@ -249,6 +218,8 @@ export async function GET(
             showActionPlan: configRaw.showActionPlan,
             showScaleLegend: configRaw.showScaleLegend,
             logoUrl: configRaw.logoUrl,
+            logoData: configRaw.logoData,
+            logoContentType: configRaw.logoContentType,
             primaryColor: configRaw.primaryColor ?? undefined,
             secondaryColor: configRaw.secondaryColor ?? undefined,
             headerTitle: configRaw.headerTitle ?? undefined,
@@ -257,21 +228,148 @@ export async function GET(
         : null
     );
 
+    const personalizedForms: RadarFormSummarySource[] = config.showRadar
+      ? await prisma.personalizedForm.findMany({
+          where: {
+            userId,
+            auditId: null,
+            reportId: reportIdInt,
+          },
+          include: {
+            baseForm: {
+              select: {
+                id: true,
+                name: true,
+                module: { select: { id: true, name: true } },
+              },
+            },
+            personalizedCategories: {
+              include: { personalizedItems: { select: { score: true } } },
+            },
+          },
+          orderBy: { updatedAt: "desc" },
+        })
+      : await prisma.personalizedForm.findMany({
+          where: {
+            userId,
+            auditId: null,
+            reportId: reportIdInt,
+          },
+          select: {
+            id: true,
+            name: true,
+            isCompleted: true,
+            completedAt: true,
+            updatedAt: true,
+            baseFormId: true,
+            baseForm: { select: { id: true, name: true, module: { select: { id: true, name: true } } } },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+
+    const latestFormsByModule = new Map<string, RadarFormSummarySource>();
+    personalizedForms.forEach((form) => {
+      const moduleId = form.baseForm.module.id;
+      const baseFormId = form.baseFormId;
+      const key = `${moduleId}-${baseFormId}`;
+      const existing = latestFormsByModule.get(key);
+      if (!existing || new Date(form.updatedAt) > new Date(existing.updatedAt)) {
+        latestFormsByModule.set(key, form);
+      }
+    });
+
+    const latestForms = Array.from(latestFormsByModule.values());
+    const zoomInForms = latestForms.filter((f) => f.baseForm.module.name.toLowerCase().includes("zoom in"));
+    const zoomOutForms = latestForms.filter((f) => f.baseForm.module.name.toLowerCase().includes("zoom out"));
+    const processFormsForRadar = (forms: RadarFormSource[]): RadarForm[] => forms.map(buildRadarForm);
+    const zoomInData = config.showRadar ? processFormsForRadar(zoomInForms as RadarFormSource[]) : [];
+    const zoomOutData = config.showRadar ? processFormsForRadar(zoomOutForms as RadarFormSource[]) : [];
+
     const pdf = await PDFDocument.create();
     const firstPage = pdf.addPage([595, 842]);
-    const titleColor = rgb(0.18, 0.39, 0.28);
-    const dark = rgb(0.12, 0.12, 0.12);
     const white = rgb(1, 1, 1);
+
+    // Convert hex color like #RRGGBB to pdf-lib rgb
+    const hexToRgbNormalized = (hex: string) => {
+      try {
+        const cleaned = hex.replace('#', '').trim();
+        const r = parseInt(cleaned.substring(0, 2), 16);
+        const g = parseInt(cleaned.substring(2, 4), 16);
+        const b = parseInt(cleaned.substring(4, 6), 16);
+        return rgb(r / 255, g / 255, b / 255);
+      } catch {
+        return rgb(0.18, 0.39, 0.28);
+      }
+    };
+
+    const titleColor = config.titleColor ? hexToRgbNormalized(config.titleColor) : rgb(0.18, 0.39, 0.28);
+    const dark = config.textColor ? hexToRgbNormalized(config.textColor) : rgb(0.12, 0.12, 0.12);
 
     const font = await pdf.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
+    let logoImage: import("pdf-lib").PDFImage | null = null;
+    const logoWidth = 72;
+    let logoHeight = 0;
+
+    const logoBytes = configRaw?.logoData ? Buffer.from(configRaw.logoData as Uint8Array) : null;
+    const logoContentType = configRaw?.logoContentType || "";
+
+    if (logoBytes) {
+      if (logoContentType.includes("png")) {
+        logoImage = await pdf.embedPng(logoBytes);
+      } else if (logoContentType.includes("jpeg") || logoContentType.includes("jpg")) {
+        logoImage = await pdf.embedJpg(logoBytes);
+      }
+    } else if (config.logoUrl) {
+      try {
+        if (config.logoUrl.startsWith("/")) {
+          const logoPath = path.join(process.cwd(), "public", config.logoUrl.replace(/^\//, ""));
+          const fileBuffer = await readFile(logoPath);
+          if (config.logoUrl.toLowerCase().endsWith(".png")) {
+            logoImage = await pdf.embedPng(fileBuffer);
+          } else if (config.logoUrl.toLowerCase().endsWith(".jpg") || config.logoUrl.toLowerCase().endsWith(".jpeg")) {
+            logoImage = await pdf.embedJpg(fileBuffer);
+          }
+        } else {
+          const logoResp = await fetch(config.logoUrl);
+          if (logoResp.ok) {
+            const contentType = logoResp.headers.get("content-type") || "image/png";
+            const fileBuffer = await logoResp.arrayBuffer();
+            if (contentType.includes("png")) {
+              logoImage = await pdf.embedPng(fileBuffer);
+            } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
+              logoImage = await pdf.embedJpg(fileBuffer);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading logo for PDF:", error);
+      }
+    }
+
+    if (logoImage) {
+      const ratio = (logoImage.height || 32) / (logoImage.width || 72);
+      logoHeight = Math.round(logoWidth * ratio);
+    }
+
     let currentPage = firstPage;
     let y = 800;
+
+    const drawLogo = (page: import("pdf-lib").PDFPage) => {
+      if (!logoImage || !logoHeight) return;
+      page.drawImage(logoImage, {
+        x: 595 - 32 - logoWidth,
+        y: 28,
+        width: logoWidth,
+        height: logoHeight,
+      });
+    };
 
     const newPage = () => {
       currentPage = pdf.addPage([595, 842]);
       y = 800;
+      drawLogo(currentPage);
       return currentPage;
     };
 
@@ -282,12 +380,14 @@ export async function GET(
       return currentPage;
     };
 
+    drawLogo(currentPage);
+
     const drawHeader = (title: string, subtitle?: string) => {
       ensureSpace(52);
       currentPage.drawText(title, { x: 40, y, size: 16, font: fontBold, color: titleColor });
-      y -= 18;
+      y -= 24;
       if (subtitle) {
-        y = drawWrappedText(currentPage, subtitle, 40, y, 500, { lineHeight: 13, size: 10, color: dark }) - 4;
+        y = drawWrappedText(currentPage, subtitle, 40, y, 500, { lineHeight: 13, size: 10, color: dark }) - 6;
       }
     };
 
@@ -301,14 +401,47 @@ export async function GET(
     const drawSeparatedList = (items: string[]) => {
       if (!items.length) {
         ensureSpace(20);
-        y = drawWrappedText(currentPage, "Sin elementos para mostrar.", 44, y, 500, { lineHeight: 13, size: 10, color: dark }) - 2;
+        y = drawWrappedText(currentPage, "Sin elementos para mostrar.", 44, y, 500, { lineHeight: 13, size: 10, color: dark }) - 6;
         return;
       }
 
       for (const item of items) {
         ensureSpace(18);
-        y = drawWrappedText(currentPage, `• ${item}`, 44, y, 500, { lineHeight: 13, size: 10, color: dark }) - 2;
+        y = drawWrappedText(currentPage, `• ${item}`, 44, y, 500, { lineHeight: 13, size: 10, color: dark }) - 6;
       }
+    };
+
+    const normalizeRadarSeries = (form: RadarForm) => {
+      const rawLabels = form.categoryData.map((category) => category.name);
+      const rawValues = form.categoryData.map((category) => category.score);
+      const minPoints = 3;
+
+      return {
+        rawLabels,
+        rawValues,
+        labels: rawLabels.length >= minPoints ? rawLabels : [...rawLabels, ...new Array(minPoints - rawLabels.length).fill("")],
+        values: rawValues.length >= minPoints ? rawValues : [...rawValues, ...new Array(minPoints - rawValues.length).fill(0)],
+      };
+    };
+
+    const drawRadarLabels = (labels: string[], values: number[] | undefined, x: number, y: number, width: number, fontSize = 9) => {
+      if (!labels.length) return y;
+
+      const formatValue = (v: number | undefined) => {
+        if (v === undefined || v === null) return "0";
+        return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100);
+      };
+
+      let cursorY = y;
+      for (let i = 0; i < labels.length; i++) {
+        const label = labels[i];
+        if (!label) continue;
+        const val = values && values[i] !== undefined ? formatValue(values[i]) : "0";
+        currentPage.drawText(`• ${label} (${val})`, { x, y: cursorY, size: fontSize, font, color: dark });
+        cursorY -= 12;
+      }
+
+      return cursorY;
     };
 
     const drawChartSection = async (title: string, subtitle: string, forms: RadarForm[]) => {
@@ -317,23 +450,25 @@ export async function GET(
       drawHeader(title, subtitle);
 
       for (const form of forms) {
-        const rawLabels = form.categoryData.map((category) => category.name);
-        const rawValues = form.categoryData.map((category) => category.score);
+        const { rawLabels, rawValues, labels, values } = normalizeRadarSeries(form);
+        const hasRadarData = rawLabels.length > 0 && rawValues.length > 0;
 
-        // Ensure a minimum number of points so radar charts render properly
-        const minPoints = 3;
-        const labels = rawLabels.length >= minPoints ? rawLabels : [...rawLabels, ...Array(minPoints - rawLabels.length).fill('')];
-        const values = rawValues.length >= minPoints ? rawValues : [...rawValues, ...Array(minPoints - rawValues.length).fill(0)];
-
-        const chartPlotHeight = 200; // area for the chart image
-        const headerHeight = 48; // space for title + meta (increased to avoid overlap)
-        const chartTotalHeight = chartPlotHeight + headerHeight;
+        const chartPlotHeight = 200;
+        const headerHeight = 48;
+        const labelColumnWidth = 170;
+        const contentWidth = 523;
+        const chartWidth = 260;
+        const chartHeight = 180;
+        const chartLeftX = 46;
+        const labelsX = chartLeftX + chartWidth + 20;
+        const chartAreaHeight = hasRadarData ? chartPlotHeight : 84;
+        const chartTotalHeight = headerHeight + chartAreaHeight;
 
         ensureSpace(chartTotalHeight + 12);
 
         const rectLowerY = y - chartTotalHeight;
         // Draw the containing rectangle (includes header area)
-        currentPage.drawRectangle({ x: 36, y: rectLowerY, width: 523, height: chartTotalHeight, color: white, borderColor: rgb(0.85, 0.9, 0.86), borderWidth: 1 });
+        currentPage.drawRectangle({ x: 36, y: rectLowerY, width: contentWidth, height: chartTotalHeight, color: white, borderColor: rgb(0.85, 0.9, 0.86), borderWidth: 1 });
 
         // Draw title and meta inside the top area of the rectangle
         const titleY = rectLowerY + chartTotalHeight - 12;
@@ -341,128 +476,140 @@ export async function GET(
         currentPage.drawText(`${form.module} - ${form.name}`, { x: 46, y: titleY, size: 11, font: fontBold, color: dark });
         currentPage.drawText(`Puntaje prom: ${form.stats.avgScore}/5.0`, { x: 46, y: metaY, size: 9, font, color: dark });
 
-        try {
-          const imgBuffer = await renderRadarChart(labels, values, 520, chartPlotHeight);
-          const pngImage = await pdf.embedPng(imgBuffer);
-          // place the image inside the rectangle with padding
-          const imgY = rectLowerY + 8;
-          currentPage.drawImage(pngImage, { x: 48, y: imgY, width: 490, height: chartPlotHeight });
-        } catch (err) {
-          console.error("Error rendering chart for form:", form.name, { labelsCount: labels.length, valuesCount: values.length, labels, valuesSample: values.slice(0,5), err });
-
-          // Fallback: attempt child process renderer
-          try {
-            const scriptPath = path.join(process.cwd(), "src", "scripts", "render-chart-child.cjs");
-            const input = JSON.stringify({ labels, values, width: 520, height: chartPlotHeight });
-            const out = execFileSync(process.execPath, [scriptPath], { input, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 });
-            const pngBuf = Buffer.from(out, "base64");
-            const pngImage = await pdf.embedPng(pngBuf);
-            const imgY = rectLowerY + 8;
-            currentPage.drawImage(pngImage, { x: 48, y: imgY, width: 490, height: chartPlotHeight });
-          } catch (fallbackErr) {
-            console.error("Child fallback render failed for form:", form.name, fallbackErr);
+        if (hasRadarData) {
             try {
-              const safeLabels = labels && labels.length ? labels : ["Sin datos", "", ""];
-              const safeValues = values && values.length ? values : [0, 0, 0];
-              const fallbackBuf = await renderRadarChart(safeLabels, safeValues, 520, chartPlotHeight);
-              const fallbackPng = await pdf.embedPng(fallbackBuf);
-              const imgY = rectLowerY + 8;
-              currentPage.drawImage(fallbackPng, { x: 48, y: imgY, width: 490, height: chartPlotHeight });
-            } catch (fallbackErr2) {
-              console.error("Fallback render failed for form:", form.name, fallbackErr2);
-              currentPage.drawText("No se pudo renderizar la gráfica.", { x: 48, y: rectLowerY + (chartTotalHeight / 2), size: 10, font, color: dark });
-            }
+            const imgBuffer = await renderRadarChart(new Array(labels.length).fill(""), values, 320, 320);
+            const pngImage = await pdf.embedPng(imgBuffer);
+            const imgY = rectLowerY + 18;
+            currentPage.drawImage(pngImage, { x: chartLeftX, y: imgY, width: chartWidth, height: chartHeight });
+            drawRadarLabels(rawLabels, rawValues, labelsX, rectLowerY + chartAreaHeight - 24, labelColumnWidth, 9);
+          } catch (error) {
+            console.error("Error rendering chart for form:", form.name, { labelsCount: labels.length, valuesCount: values.length, labels, valuesSample: values.slice(0, 5), error });
+
+            currentPage.drawText("No se pudo renderizar la gráfica.", {
+              x: 46,
+              y: rectLowerY + chartAreaHeight - 24,
+              size: 10,
+              font,
+              color: dark,
+            });
+            drawRadarLabels(rawLabels, rawValues, 46, rectLowerY + chartAreaHeight - 40, contentWidth - 80, 9);
           }
+        } else {
+          currentPage.drawText("Sin categorías para graficar.", {
+            x: 46,
+            y: rectLowerY + chartAreaHeight - 24,
+            size: 10,
+            font,
+            color: dark,
+          });
+          currentPage.drawText("Completa datos en el formulario para ver el radar.", {
+            x: 46,
+            y: rectLowerY + chartAreaHeight - 40,
+            size: 9,
+            font,
+            color: dark,
+          });
         }
 
-        y = rectLowerY - 18;
+        y = rectLowerY - 24;
       }
     };
 
-    // Try to embed logo at top-right if provided
-    if (config.logoUrl) {
-      try {
-        const logoSource = config.logoUrl.startsWith("/") ? `${request.nextUrl.origin}${config.logoUrl}` : config.logoUrl;
-        const logoResp = await fetch(logoSource);
-        if (logoResp.ok) {
-          const contentType = logoResp.headers.get("content-type") || "image/png";
-          const logoBuffer = await logoResp.arrayBuffer();
-          let logoImage: import("pdf-lib").PDFImage | null = null;
-          if (contentType.includes("png")) {
-            logoImage = await pdf.embedPng(logoBuffer);
-          } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
-            logoImage = await pdf.embedJpg(logoBuffer);
-          }
+    drawLogo(currentPage);
 
-          if (logoImage) {
-            const logoWidth = 96;
-            const ratio = (logoImage.height || 32) / (logoImage.width || 96);
-            const logoHeight = Math.round(logoWidth * ratio);
-            currentPage.drawImage(logoImage, { x: 595 - 40 - logoWidth, y: 800 - logoHeight, width: logoWidth, height: logoHeight });
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching or embedding logo:", err, config.logoUrl);
-      }
-    }
-
-    currentPage.drawText(config.headerTitle, { x: 40, y, size: 20, font: fontBold, color: titleColor });
+    const headerTitleSize = 20;
+    const headerTitleWidth = fontBold.widthOfTextAtSize(config.headerTitle, headerTitleSize);
+    currentPage.drawText(config.headerTitle, {
+      x: Math.max(40, (595 - headerTitleWidth) / 2),
+      y,
+      size: headerTitleSize,
+      font: fontBold,
+      color: titleColor,
+    });
     y -= 22;
     if (config.headerSubtitle) {
-      y = drawWrappedText(currentPage, config.headerSubtitle, 40, y, 500, { lineHeight: 13, size: 11, color: dark }) - 2;
+      y = drawWrappedText(currentPage, config.headerSubtitle, 40, y, 500, { lineHeight: 13, size: 11, color: dark }) - 6;
     }
     currentPage.drawText(`Reporte: ${report.name} (v${report.version})`, { x: 40, y, size: 10, font, color: dark });
-    y -= 14;
+    y -= 16;
     currentPage.drawText(`Organización: ${report.user.name} - ${report.user.email}`, { x: 40, y, size: 10, font, color: dark });
-    y -= 14;
+    y -= 16;
     currentPage.drawText(`Fecha: ${new Date(report.createdAt).toLocaleString("es-CO")}`, { x: 40, y, size: 10, font, color: dark });
-    y -= 20;
+    y -= 28;
 
     if (config.showExecutiveSummary) {
       drawHeader("Resumen Ejecutivo", "Este informe consolida el estado del diagnóstico digital con resultados por módulo, categorización, priorización y plan de acción.");
       drawSeparatedList([
         `Zoom In: ${zoomInData.length} formularios`,
         `Zoom Out: ${zoomOutData.length} formularios`,
-        `Categorización: ${categorization.length} elementos`,
+        `Categorización: ${opportunities.length + needs.length + problems.length} elementos`,
         `Priorización: ${high.length + medium.length + medium2.length + low.length} elementos`,
       ]);
-      y -= 10;
+      y -= 28;
     }
 
-    drawHeader("Resumen General", "Métricas principales del reporte, equivalentes a las tarjetas que ves en la interfaz web.");
+    drawHeader("Resumen General");
     drawStatCard(40, "Formularios Zoom In", zoomInData.length, titleColor);
     drawStatCard(220, "Formularios Zoom Out", zoomOutData.length, titleColor);
-    drawStatCard(400, "Total Formularios", zoomInData.length + zoomOutData.length + categorization.length + high.length + medium.length + medium2.length + low.length, rgb(0.12, 0.45, 0.82));
-    y -= 60;
+    drawStatCard(400, "Total Formularios", zoomInData.length + zoomOutData.length + opportunities.length + needs.length + problems.length + high.length + medium.length + medium2.length + low.length, titleColor);
+    y -= 90;
 
     if (config.showRadar) {
-      await drawChartSection("Zoom In - Evaluación de Habilidades", "Las mismas gráficas del reporte web para los formularios Zoom In.", zoomInData);
-      await drawChartSection("Zoom Out - Evaluación de Capacidades", "Las mismas gráficas del reporte web para los formularios Zoom Out.", zoomOutData);
+      await drawChartSection("Zoom In - Evaluación de Habilidades", "", zoomInData);
+      await drawChartSection("Zoom Out - Evaluación de Capacidades", "", zoomOutData);
     }
 
     if (config.showCategorization) {
-      drawHeader("Categorización", "Resumen de oportunidades, necesidades y problemas del reporte web.");
+      drawHeader("Categorización");
+      
+      // Oportunidades
+      ensureSpace(20);
+      currentPage.drawText("Oportunidades", { x: 44, y, size: 12, font: fontBold, color: titleColor });
+      y -= 14;
       drawSeparatedList(
-        categorization.length > 0
-          ? categorization.map((item) => item.name)
-          : ["Sin elementos guardados para este reporte."]
+        opportunities.length > 0
+          ? opportunities.map((item) => item.name)
+          : ["Sin oportunidades registradas."]
       );
-      y -= 8;
+      y -= 14;
+      
+      // Necesidades
+      ensureSpace(20);
+      currentPage.drawText("Necesidades", { x: 44, y, size: 12, font: fontBold, color: titleColor });
+      y -= 14;
+      drawSeparatedList(
+        needs.length > 0
+          ? needs.map((item) => item.name)
+          : ["Sin necesidades registradas."]
+      );
+      y -= 14;
+      
+      // Problemas
+      ensureSpace(20);
+      currentPage.drawText("Problemas", { x: 44, y, size: 12, font: fontBold, color: titleColor });
+      y -= 14;
+      drawSeparatedList(
+        problems.length > 0
+          ? problems.map((item) => item.name)
+          : ["Sin problemas registrados."]
+      );
+      y -= 14;
     }
 
     if (config.showPrioritization) {
-      drawHeader("Priorización", "Distribución de elementos por nivel de impacto y urgencia.");
+      drawHeader("Priorización");
       drawSeparatedList([
         `Alta prioridad: ${high.length}`,
         `Media (alto impacto): ${medium.length}`,
         `Media (alta urgencia): ${medium2.length}`,
         `Baja prioridad: ${low.length}`,
       ]);
-      y -= 8;
+      y -= 14;
     }
 
     if (config.showActionPlan) {
-      drawHeader("Plan de acción recomendado", "Muestra la secuencia sugerida a partir del resumen de priorización.");
+      drawHeader("Plan de acción recomendado");
       const actions = [
         ...high.map((item) => ({ name: item.name, level: "Alta prioridad" })),
         ...medium.map((item) => ({ name: item.name, level: "Media (alto impacto)" })),
@@ -475,22 +622,17 @@ export async function GET(
           ? actions.map((item, index) => `${index + 1}. ${item.name} (${item.level})`)
           : ["Sin acciones priorizadas para este reporte."]
       );
-      y -= 8;
-    }
-
-    if (config.showScaleLegend) {
-      ensureSpace(20);
-      currentPage.drawText("Escala de referencia: 1 (muy bajo) a 5 (muy alto)", { x: 40, y, size: 10, font, color: dark });
-      y -= 16;
+      y -= 14;
     }
 
     const bytes = await pdf.save();
+    const downloadFilename = buildReportPdfFilename(config.headerTitle, report.id);
 
     return new NextResponse(Buffer.from(bytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="reporte-${report.id}.pdf"`,
+        "Content-Disposition": `attachment; filename="${downloadFilename}"; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`,
       },
     });
   } catch (error) {

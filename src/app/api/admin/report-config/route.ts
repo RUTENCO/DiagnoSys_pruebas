@@ -8,15 +8,16 @@ import {
   withDefaultReportConfig,
 } from "@/lib/report-config";
 
-async function requireAdminSession() {
+async function requireReportConfigSession() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     return { error: NextResponse.json({ error: "Authentication required" }, { status: 401 }) };
   }
 
-  if (session.user.role?.name !== "admin") {
-    return { error: NextResponse.json({ error: "Admin access required" }, { status: 403 }) };
+  const roleName = session.user.role?.name;
+  if (roleName !== "admin" && roleName !== "consultant" && roleName !== "organization") {
+    return { error: NextResponse.json({ error: "Admin, consultant or organization access required" }, { status: 403 }) };
   }
 
   return { session };
@@ -24,26 +25,55 @@ async function requireAdminSession() {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAdminSession();
+    const auth = await requireReportConfigSession();
     if (auth.error) return auth.error;
 
+    const session = auth.session;
+
     const orgIdParam = request.nextUrl.searchParams.get("organizationUserId");
-    const organizations = await prisma.user.findMany({
-      where: { role: { name: "organization" } },
-      select: { id: true, name: true, email: true },
-      orderBy: { name: "asc" },
-    });
+    const consultantId = Number.parseInt(session.user.id, 10);
+    const roleName = session.user.role?.name;
+    let organizations: Array<{ id: number; name: string; email: string }>;
+
+    if (roleName === "consultant") {
+      organizations = await prisma.user.findMany({
+        where: {
+          role: { name: "organization" },
+          organizationAudits: { some: { consultantId } },
+        },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      });
+    } else if (roleName === "organization") {
+      organizations = [
+        {
+          id: Number.parseInt(session.user.id, 10),
+          name: session.user.name || "Organización",
+          email: session.user.email || "",
+        },
+      ];
+    } else {
+      organizations = await prisma.user.findMany({
+        where: { role: { name: "organization" } },
+        select: { id: true, name: true, email: true },
+        orderBy: { name: "asc" },
+      });
+    }
 
     let selectedOrganizationId: number | null = null;
 
     if (orgIdParam) {
-      const parsed = parseInt(orgIdParam, 10);
+      const parsed = Number.parseInt(orgIdParam, 10);
       if (Number.isNaN(parsed)) {
         return NextResponse.json({ error: "Invalid organizationUserId" }, { status: 400 });
       }
       selectedOrganizationId = parsed;
     } else if (organizations.length > 0) {
       selectedOrganizationId = organizations[0].id;
+    }
+
+    if (selectedOrganizationId && !organizations.some((organization) => organization.id === selectedOrganizationId)) {
+      return NextResponse.json({ error: "Organization not accessible" }, { status: 403 });
     }
 
     if (!selectedOrganizationId) {
@@ -73,6 +103,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Regenerate logoUrl with fresh timestamp to bypass browser cache
+    let logoUrl = existingConfig?.logoUrl ?? null;
+    if (logoUrl?.includes("/api/admin/report-config/logo")) {
+      logoUrl = `/api/admin/report-config/logo?organizationUserId=${selectedOrganizationId}&t=${Date.now()}`;
+    }
+
     const normalizedExistingConfig = existingConfig
       ? {
           showExecutiveSummary: existingConfig.showExecutiveSummary,
@@ -81,7 +117,7 @@ export async function GET(request: NextRequest) {
           showPrioritization: existingConfig.showPrioritization,
           showActionPlan: existingConfig.showActionPlan,
           showScaleLegend: existingConfig.showScaleLegend,
-          logoUrl: existingConfig.logoUrl,
+          logoUrl: logoUrl,
           primaryColor: existingConfig.primaryColor ?? undefined,
           secondaryColor: existingConfig.secondaryColor ?? undefined,
           headerTitle: existingConfig.headerTitle ?? undefined,
@@ -103,12 +139,12 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await requireAdminSession();
+    const auth = await requireReportConfigSession();
     if (auth.error) return auth.error;
 
-    const session = auth.session!;
+    const session = auth.session;
     const body = await request.json();
-    const organizationUserId = parseInt(String(body.organizationUserId), 10);
+    const organizationUserId = Number.parseInt(String(body.organizationUserId), 10);
 
     if (Number.isNaN(organizationUserId)) {
       return NextResponse.json({ error: "organizationUserId is required" }, { status: 400 });
@@ -119,23 +155,55 @@ export async function PUT(request: NextRequest) {
       select: { id: true, role: { select: { name: true } } },
     });
 
-    if (!orgUser || orgUser.role.name !== "organization") {
+    if (orgUser?.role.name !== "organization") {
       return NextResponse.json({ error: "Organization user not found" }, { status: 404 });
+    }
+
+    if (session.user.role?.name === "consultant") {
+      const consultantId = Number.parseInt(session.user.id, 10);
+      const accessibleOrganization = await prisma.user.findFirst({
+        where: {
+          id: organizationUserId,
+          role: { name: "organization" },
+          organizationAudits: { some: { consultantId } },
+        },
+        select: { id: true },
+      });
+
+      if (!accessibleOrganization) {
+        return NextResponse.json({ error: "Organization not accessible" }, { status: 403 });
+      }
+    }
+
+    if (session.user.role?.name === "organization" && organizationUserId !== Number.parseInt(session.user.id, 10)) {
+      return NextResponse.json({ error: "Organization not accessible" }, { status: 403 });
     }
 
     const normalized = normalizeReportDisplayConfigInput(body);
 
-    const saved = await prisma.reportDisplayConfig.upsert({
+    const updateData: any = {
+      updatedByAdminId: Number.parseInt(session.user.id, 10),
+      showExecutiveSummary: normalized.showExecutiveSummary,
+      showRadar: normalized.showRadar,
+      showCategorization: normalized.showCategorization,
+      showPrioritization: normalized.showPrioritization,
+      showActionPlan: normalized.showActionPlan,
+      showScaleLegend: normalized.showScaleLegend,
+      headerTitle: normalized.headerTitle,
+      headerSubtitle: normalized.headerSubtitle,
+      primaryColor: normalized.primaryColor,
+      secondaryColor: normalized.secondaryColor,
+      ...(body.logoUrl !== undefined && { logoUrl: normalized.logoUrl }),
+    };
+
+    const savedConfig = await prisma.reportDisplayConfig.upsert({
       where: { organizationUserId },
       create: {
         organizationUserId,
-        updatedByAdminId: parseInt(session.user.id, 10),
+        updatedByAdminId: Number.parseInt(session.user.id, 10),
         ...normalized,
       },
-      update: {
-        updatedByAdminId: parseInt(session.user.id, 10),
-        ...normalized,
-      },
+      update: updateData,
       select: {
         organizationUserId: true,
         showExecutiveSummary: true,
@@ -154,23 +222,23 @@ export async function PUT(request: NextRequest) {
     });
 
     const normalizedSavedConfig = {
-      showExecutiveSummary: saved.showExecutiveSummary,
-      showRadar: saved.showRadar,
-      showCategorization: saved.showCategorization,
-      showPrioritization: saved.showPrioritization,
-      showActionPlan: saved.showActionPlan,
-      showScaleLegend: saved.showScaleLegend,
-      logoUrl: saved.logoUrl,
-      primaryColor: saved.primaryColor ?? undefined,
-      secondaryColor: saved.secondaryColor ?? undefined,
-      headerTitle: saved.headerTitle ?? undefined,
-      headerSubtitle: saved.headerSubtitle,
+      showExecutiveSummary: savedConfig.showExecutiveSummary,
+      showRadar: savedConfig.showRadar,
+      showCategorization: savedConfig.showCategorization,
+      showPrioritization: savedConfig.showPrioritization,
+      showActionPlan: savedConfig.showActionPlan,
+      showScaleLegend: savedConfig.showScaleLegend,
+      logoUrl: savedConfig.logoUrl ? `/api/admin/report-config/logo?organizationUserId=${organizationUserId}&t=${Date.now()}` : null,
+      primaryColor: savedConfig.primaryColor ?? undefined,
+      secondaryColor: savedConfig.secondaryColor ?? undefined,
+      headerTitle: savedConfig.headerTitle ?? undefined,
+      headerSubtitle: savedConfig.headerSubtitle,
     };
 
     return NextResponse.json({
       message: "Configuración del informe almacenada correctamente",
       config: withDefaultReportConfig(normalizedSavedConfig),
-      updatedAt: saved.updatedAt,
+      updatedAt: savedConfig.updatedAt,
     });
   } catch (error) {
     console.error("Error saving report config:", error);

@@ -110,9 +110,14 @@ export async function POST(
                 consultantId,
                 organizationUserId: orgIdInt
             },
-            include: {
-                consultant: { select: { id: true, name: true } },
-                organizationUser: { select: { id: true, name: true, email: true } }
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                consultantId: true,
+                organizationUserId: true,
+                createdAt: true,
+                updatedAt: true,
             }
         });
 

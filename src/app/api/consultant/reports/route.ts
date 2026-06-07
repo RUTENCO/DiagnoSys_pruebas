@@ -21,9 +21,10 @@ type ReportSummary = {
 type OrganizationReportsSummary = {
   id: number;
   name: string;
-  description: string | null;
   userName: string;
   email: string;
+  sector: string | null;
+  companySize: string | null;
   stats: {
     reportsCount: number;
   };
@@ -42,7 +43,7 @@ export async function GET() {
       return NextResponse.json({ error: "Consultant access required" }, { status: 403 });
     }
 
-    const consultantId = parseInt(session.user.id, 10);
+    const consultantId = Number.parseInt(session.user.id, 10);
 
     const [zoomInTotalExpected, zoomOutTotalExpected] = await Promise.all([
       prisma.form.count({
@@ -135,9 +136,10 @@ export async function GET() {
         return {
           id: organizationUser.id,
           name: organizationUser.name,
-          description: null,
           userName: organizationUser.name,
           email: organizationUser.email,
+          sector: organizationUser.sector,
+          companySize: organizationUser.companySize,
           stats: {
             reportsCount: reportsSummary.length,
           },

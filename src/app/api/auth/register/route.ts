@@ -7,12 +7,14 @@ export async function POST(req: Request) {
     try {
         const body = await req.json();
         const { name, email, password, role } = body ?? {};
+        const normalizedName = typeof name === "string" ? name.trim() : "";
+        const normalizedEmail = typeof email === "string" ? email.trim() : "";
 
         // Basic server-side validation
-        if (!name || !email || !password || !role) {
+        if (!normalizedName || !normalizedEmail || !password || !role) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
-        if (!/^\S+@\S+\.\S+$/.test(email)) {
+        if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
             return NextResponse.json({ error: "Invalid email" }, { status: 400 });
         }
         if (typeof password !== "string" || password.length < 8) {
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
         }
 
         // Check existing user
-        const existing = await prisma.user.findUnique({ where: { email } });
+        const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
         if (existing) {
             return NextResponse.json({ error: "Email already registered" }, { status: 409 });
         }
@@ -40,8 +42,8 @@ export async function POST(req: Request) {
         const hashed = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
             data: {
-                name,
-                email,
+                name: normalizedName,
+                email: normalizedEmail,
                 password: hashed,
                 roleId: roleRecord.id,
             },
@@ -58,6 +60,13 @@ export async function POST(req: Request) {
                 createdAt: true,
             },
         });
+
+        if (role === "organization") {
+            await prisma.consultantOrganization.updateMany({
+                where: { email: normalizedEmail, linkedUserId: null },
+                data: { linkedUserId: user.id },
+            });
+        }
 
         return NextResponse.json({ user }, { status: 201 });
     } catch (err) {

@@ -4,14 +4,16 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import ConfirmationPopup from "@/app/components/ConfirmationPopup";
 
 type OrganizationSummary = {
   id: number;
+  name: string;
   userName: string;
   email: string;
   sector?: string | null;
   companySize?: string | null;
-  primaryAuditId: number | null;
+  linkedUserId?: number | null;
   stats: {
     reportsCount: number;
   };
@@ -24,6 +26,8 @@ export default function ConsultantOrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [updatingOrg, setUpdatingOrg] = useState(false);
+  const [removingOrgId, setRemovingOrgId] = useState<number | null>(null);
+  const [pendingRemovalOrgId, setPendingRemovalOrgId] = useState<number | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,13 +35,11 @@ export default function ConsultantOrganizationsPage() {
   const [editingOrgId, setEditingOrgId] = useState<number | null>(null);
   const [editUserName, setEditUserName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editPassword, setEditPassword] = useState("");
   const [editSector, setEditSector] = useState("");
   const [editCompanySize, setEditCompanySize] = useState("");
 
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [sector, setSector] = useState("");
   const [companySize, setCompanySize] = useState("");
 
@@ -82,7 +84,6 @@ export default function ConsultantOrganizationsPage() {
         body: JSON.stringify({
           name: userName,
           email,
-          password,
           sector: sector || undefined,
           companySize: companySize || undefined,
         }),
@@ -94,14 +95,13 @@ export default function ConsultantOrganizationsPage() {
       }
 
       setMessage(
-        `Organización creada. Credenciales: ${data.credentials?.email} (${data.credentials?.role})`
+        data.message || "Organización agregada a tu lista"
       );
 
       setCreateDialogOpen(false);
 
       setUserName("");
       setEmail("");
-      setPassword("");
       setSector("");
       setCompanySize("");
 
@@ -114,15 +114,16 @@ export default function ConsultantOrganizationsPage() {
   };
 
   const startDiagnosis = (org: OrganizationSummary) => {
-    const nextUrl = `/dashboard/organization/report?organizationId=${org.id}&organizationName=${encodeURIComponent(org.userName)}`;
+    const nextUrl = org.linkedUserId
+      ? `/dashboard/organization/report?organizationId=${org.linkedUserId}&organizationName=${encodeURIComponent(org.name)}`
+      : `/dashboard/consultant/diagnostics?organizationId=${org.id}&organizationName=${encodeURIComponent(org.name)}`;
     router.push(nextUrl);
   };
 
   const handleOpenEdit = (org: OrganizationSummary) => {
     setEditingOrgId(org.id);
-    setEditUserName(org.userName || "");
+    setEditUserName(org.name || "");
     setEditEmail(org.email || "");
-    setEditPassword("");
     setEditSector(org.sector || "");
     setEditCompanySize(org.companySize || "");
     setMessage(null);
@@ -133,7 +134,6 @@ export default function ConsultantOrganizationsPage() {
     setEditingOrgId(null);
     setEditUserName("");
     setEditEmail("");
-    setEditPassword("");
     setEditSector("");
     setEditCompanySize("");
   };
@@ -141,11 +141,6 @@ export default function ConsultantOrganizationsPage() {
   const handleSaveEdit = async (orgId: number) => {
     if (!editUserName.trim() || !editEmail.trim()) {
       setError("El nombre de usuario y email son requeridos");
-      return;
-    }
-
-    if (editPassword && editPassword.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
@@ -161,7 +156,6 @@ export default function ConsultantOrganizationsPage() {
           orgId,
           name: editUserName,
           email: editEmail,
-          password: editPassword || undefined,
           sector: editSector || undefined,
           companySize: editCompanySize || undefined,
         }),
@@ -179,6 +173,43 @@ export default function ConsultantOrganizationsPage() {
       setError(err instanceof Error ? err.message : "Error al actualizar la organización");
     } finally {
       setUpdatingOrg(false);
+    }
+  };
+
+  const handleRemoveOrganization = async (orgId: number) => {
+    setPendingRemovalOrgId(orgId);
+  };
+
+  const confirmRemoveOrganization = async () => {
+    if (pendingRemovalOrgId === null) {
+      return;
+    }
+
+    const orgId = pendingRemovalOrgId;
+
+    try {
+      setRemovingOrgId(orgId);
+      setError(null);
+      setMessage(null);
+
+      const res = await fetch("/api/consultant/organizations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Error al eliminar la organización de la lista");
+      }
+
+      setOrganizations((prev) => prev.filter((organization) => organization.id !== orgId));
+      setMessage(data.message || "Organización eliminada de tu lista");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar la organización de la lista");
+    } finally {
+      setRemovingOrgId(null);
+      setPendingRemovalOrgId(null);
     }
   };
 
@@ -220,16 +251,6 @@ export default function ConsultantOrganizationsPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="off"
-                required
-              />
-              <input
-                className="w-full border rounded-md px-3 py-2"
-                type="password"
-                placeholder="Contraseña de la organización (mín. 8 caracteres)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                minLength={8}
                 required
               />
               <select
@@ -322,13 +343,16 @@ export default function ConsultantOrganizationsPage() {
           {organizations.map((org) => (
             <article
               key={org.id}
-              className=" green-interactive rounded-xl border border-primary/20 bg-white/70 p-5 shadow-sm hover:shadow-md transition"
+              className="rounded-xl border border-primary/20 bg-white/70 p-5 shadow-sm hover:shadow-md transition"
             >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg text-[#2E6347]">{org.userName}</h3>
+                  <h3 className="font-semibold text-lg text-[#2E6347]">{org.name}</h3>
                   <p className="text-sm text-gray-600">
-                    Usuario: {org.userName} | Email: {org.email}
+                    Usuario: {org.name} | Email: {org.email}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {org.linkedUserId ? "Vinculada a una cuenta real" : "Aún no vinculada a una cuenta"}
                   </p>
                 </div>
 
@@ -341,28 +365,27 @@ export default function ConsultantOrganizationsPage() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => startDiagnosis(org)}
-                  className="bg-[#2E6347] text-white px-3 py-2 rounded-md"
+                  className="bg-[#2E6347] text-white px-3 py-2 rounded-md  cursor-pointer"
                 >
                   Entrar al diagnóstico
                 </button>
                 <button
                   onClick={() => handleOpenEdit(org)}
-                  className="border border-[#2E6347] text-[#2E6347] px-3 py-2 rounded-md"
+                  className="border border-[#2E6347] text-[#2E6347] px-3 py-2 rounded-md cursor-pointer"
                 >
                   Editar
+                </button>
+                <button
+                  onClick={() => handleRemoveOrganization(org.id)}
+                  disabled={removingOrgId === org.id}
+                  className="border border-red-400 text-red-600 px-3 py-2 rounded-md cursor-pointer disabled:opacity-60"
+                >
+                  {removingOrgId === org.id ? "Eliminando..." : "Eliminar"}
                 </button>
               </div>
 
               {editingOrgId === org.id ? (
                 <div className="mt-4 space-y-3 border-t border-primary/20 pt-4">
-                  <input
-                    className="w-full border rounded-md px-3 py-2"
-                    value={editUserName}
-                    onChange={(e) => setEditUserName(e.target.value)}
-                    placeholder="Nombre de la organización"
-                    autoComplete="off"
-                  />
-                  
                   <input
                     className="w-full border rounded-md px-3 py-2"
                     value={editUserName}
@@ -377,14 +400,6 @@ export default function ConsultantOrganizationsPage() {
                     onChange={(e) => setEditEmail(e.target.value)}
                     placeholder="Correo electrónico de la organización"
                     autoComplete="off"
-                  />
-                  <input
-                    className="w-full border rounded-md px-3 py-2"
-                    type="password"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="Nueva contraseña (opcional)"
-                    autoComplete="new-password"
                   />
                   <select
                     className="w-full border rounded-md px-3 py-2"
@@ -432,6 +447,17 @@ export default function ConsultantOrganizationsPage() {
           ))}
         </div>
       </section>
+
+      <ConfirmationPopup
+        open={pendingRemovalOrgId !== null}
+        title="Eliminar organización"
+        message="¿Quieres eliminar esta organización de tu lista?"
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        confirmTone="destructive"
+        onConfirm={confirmRemoveOrganization}
+        onCancel={() => setPendingRemovalOrgId(null)}
+      />
     </div>
   );
 }

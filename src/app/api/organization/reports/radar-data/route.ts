@@ -416,12 +416,18 @@ export async function GET(request: NextRequest) {
                     showActionPlan: true,
                     showScaleLegend: true,
                     logoUrl: true,
+                    logoData: true,
+                    logoContentType: true,
                     primaryColor: true,
                     secondaryColor: true,
                     headerTitle: true,
                     headerSubtitle: true,
                 },
             });
+
+        const embeddedLogoUrl = reportDisplayConfigRaw?.logoData
+            ? `data:${reportDisplayConfigRaw.logoContentType || "image/png"};base64,${Buffer.from(reportDisplayConfigRaw.logoData as Uint8Array).toString("base64")}`
+            : null;
 
         const reportDisplayConfig = withDefaultReportConfig(
             reportDisplayConfigRaw
@@ -432,7 +438,7 @@ export async function GET(request: NextRequest) {
                       showPrioritization: reportDisplayConfigRaw.showPrioritization,
                       showActionPlan: reportDisplayConfigRaw.showActionPlan,
                       showScaleLegend: reportDisplayConfigRaw.showScaleLegend,
-                      logoUrl: reportDisplayConfigRaw.logoUrl,
+                      logoUrl: embeddedLogoUrl ?? reportDisplayConfigRaw.logoUrl,
                       primaryColor: reportDisplayConfigRaw.primaryColor ?? undefined,
                       secondaryColor: reportDisplayConfigRaw.secondaryColor ?? undefined,
                       headerTitle: reportDisplayConfigRaw.headerTitle ?? undefined,

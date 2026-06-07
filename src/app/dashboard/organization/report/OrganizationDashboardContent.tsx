@@ -6,10 +6,11 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/shadcn-charts/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, PlayCircle, Eye, Calendar, Hash, TrendingUp } from "lucide-react";
+import { Loader2, Plus, PlayCircle, Eye, Calendar, Hash, TrendingUp, Trash2} from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ConfirmationPopup from "@/app/components/ConfirmationPopup";
 
 interface ReportStats {
     totalForms: number;
@@ -54,6 +55,8 @@ export default function OrganizationDashboardContent() {
     const [creating, setCreating] = useState(false);
     const [newReportName, setNewReportName] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
+    const [pendingRemoval, setPendingRemoval] = useState<number | null>(null);
 
     const fetchReports = useCallback(async () => {
         try {
@@ -102,6 +105,36 @@ export default function OrganizationDashboardContent() {
 
     const viewReport = (reportId: number) => {
         router.push(`/dashboard/organization/report/${reportId}/reports${contextQuery}`);
+    };
+
+    const requestDeleteReport = (reportId: number) => {
+        setPendingRemoval(reportId);
+    };
+
+    const confirmDeleteReport = async () => {
+        if (!pendingRemoval) {
+            return;
+        }
+
+        try {
+            setDeletingReportId(pendingRemoval);
+
+            const response = await fetch(`/api/organization/reports/${pendingRemoval}${contextQuery}`, {
+                method: "DELETE",
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.error || "Failed to delete report");
+            }
+
+            setReports((prev) => prev.filter((report) => report.id !== pendingRemoval));
+        } catch (error) {
+            console.error("Error deleting report:", error);
+        } finally {
+            setDeletingReportId(null);
+            setPendingRemoval(null);
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -308,32 +341,53 @@ export default function OrganizationDashboardContent() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="flex flex-col gap-2">
                                     <Button
                                         onClick={() => startReport(report.id)}
-                                        className="w-full sm:flex-1"
+                                        className="w-full justify-center px-3"
                                         size="sm"
                                     >
-                                        <PlayCircle className="h-4 w-4 mr-2" />
-                                        Iniciar Reporte
+                                        <PlayCircle className="h-4 w-4 mr-2 shrink-0" />
+                                        <span className="whitespace-nowrap">Iniciar</span>
                                     </Button>
                                     {report.stats.completedForms > 0 && (
                                         <Button
                                             onClick={() => viewReport(report.id)}
                                             variant="outline"
                                             size="sm"
-                                            className="w-full sm:flex-1 hover:bg-green-50 hover:text-green-800 border-gray-400 hover:border-green-800 transition-colors"
+                                            className="w-full justify-center px-3 hover:bg-green-100 hover:text-green-900 border-gray-400 hover:border-green-900 transition-colors"
                                         >
-                                            <Eye className="h-4 w-4 mr-2" />
-                                            Ver
+                                            <Eye className="h-4 w-4 mr-2 shrink-0" />
+                                            <span className="whitespace-nowrap">Ver</span>
                                         </Button>
                                     )}
+                                    <Button
+                                        onClick={() => requestDeleteReport(report.id)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full justify-center px-3 border-red-700 text-red-700 hover:bg-red-200 hover:text-red-700"
+                                        disabled={deletingReportId === report.id}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2 shrink-0" />
+                                        <span className="whitespace-nowrap">{deletingReportId === report.id ? "Eliminando..." : "Eliminar"}</span>
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ))}
                 </div>
             )}
+
+            <ConfirmationPopup
+                open={pendingRemoval !== null}
+                title="Eliminar reporte"
+                message="¿Quieres eliminar este reporte de tu lista?"
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                confirmTone="destructive"
+                onConfirm={confirmDeleteReport}
+                onCancel={() => setPendingRemoval(null)}
+            />
         </div>
     );
 }

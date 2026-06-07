@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/app/components/shadcn-charts/card";
-import { Calendar, ChevronRight, Eye, Loader2, TrendingUp, BarChart3 } from "lucide-react";
+import ConfirmationPopup from "@/app/components/ConfirmationPopup";
+import { Calendar, ChevronRight, Eye, TrendingUp, BarChart3 } from "lucide-react";
 
 interface ReportSummary {
     id: number;
@@ -26,9 +26,10 @@ interface ApiResponse {
     organizations: Array<{
         id: number;
         name: string;
-        description: string | null;
         userName: string;
         email: string;
+        sector: string | null;
+        companySize: string | null;
         stats: {
             reportsCount: number;
         };
@@ -37,11 +38,38 @@ interface ApiResponse {
     message: string;
 }
 
+function removeReportFromOrganizations(
+    organizations: ApiResponse["organizations"],
+    organizationId: number,
+    reportId: number
+) {
+    return organizations
+        .map((organization) => {
+            if (organization.id !== organizationId) {
+                return organization;
+            }
+
+            const nextReports = organization.reports.filter((report) => report.id !== reportId);
+
+            return {
+                ...organization,
+                reports: nextReports,
+                stats: {
+                    ...organization.stats,
+                    reportsCount: nextReports.length,
+                },
+            };
+        })
+        .filter((organization) => organization.reports.length > 0 || organization.stats.reportsCount > 0);
+}
+
 export default function ReportsPage() {
     const router = useRouter();
     const { status } = useSession();
     const [loading, setLoading] = useState(true);
     const [organizations, setOrganizations] = useState<ApiResponse["organizations"]>([]);
+    const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
+    const [pendingRemoval, setPendingRemoval] = useState<{ organizationId: number; reportId: number } | null>(null);
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -101,16 +129,36 @@ export default function ReportsPage() {
         );
     };
 
-    const getStatusBadge = (report: ReportSummary) => {
-        if (report.isCompleted) {
-            return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-100">Completado</Badge>;
+    const removeReport = async (organizationId: number, reportId: number) => {
+        setPendingRemoval({ organizationId, reportId });
+    };
+
+    const confirmRemoveReport = async () => {
+        if (!pendingRemoval) {
+            return;
         }
 
-        if (report.stats.completedForms > 0) {
-            return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-100">Pendiente</Badge>;
-        }
+        const { organizationId, reportId } = pendingRemoval;
 
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100">No iniciado</Badge>;
+        try {
+            setDeletingReportId(reportId);
+
+            const response = await fetch(`/api/consultant/reports/${reportId}`, {
+                method: "DELETE",
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data?.error || "Error al eliminar el reporte");
+            }
+
+            setOrganizations((prev) => removeReportFromOrganizations(prev, organizationId, reportId));
+        } catch (error) {
+            console.error("Error deleting report:", error);
+        } finally {
+            setDeletingReportId(null);
+            setPendingRemoval(null);
+        }
     };
 
     if (status === "loading" || loading) {
@@ -260,7 +308,9 @@ export default function ReportsPage() {
                                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-6">
                                         <div>
                                             <h2 className="text-2xl font-bold text-[#2E6347] mb-2">{organization.name}</h2>
-                                            <p className="text-gray-700">{organization.description || "Sin descripción"}</p>
+                                            <p className="text-gray-700">
+                                                Sector: {organization.sector || "No especificado"} | Tamaño: {organization.companySize || "No especificado"}
+                                            </p>
                                             <p className="text-sm text-gray-500 mt-1">
                                                 Usuario: {organization.userName} | Email: {organization.email}
                                             </p>
@@ -279,7 +329,7 @@ export default function ReportsPage() {
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                             {organization.reports.map((report) => (
-                                                <div key={report.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                                                <div key={report.id} className="rounded-xl border border-gray-200 bg-secondary p-4 shadow-sm hover:shadow-md transition">
                                                     <div className="flex items-start gap-3">
                                                         <div>
                                                             <h3 className="text-lg font-semibold text-[#2E6347]">{report.name}</h3>
@@ -312,7 +362,16 @@ export default function ReportsPage() {
                                                             onClick={() => continueReport(organization, report.id)}
                                                         >
                                                             <ChevronRight className="h-4 w-4" />
-                                                            Continuar diagnóstico
+                                                            Ir al diagnóstico
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                            onClick={() => removeReport(organization.id, report.id)}
+                                                            disabled={deletingReportId === report.id}
+                                                        >
+                                                            {deletingReportId === report.id ? "Eliminando..." : "Eliminar reporte"}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -325,6 +384,17 @@ export default function ReportsPage() {
                     </div>
                 )}
             </div>
+
+            <ConfirmationPopup
+                open={pendingRemoval !== null}
+                title="Eliminar reporte"
+                message="¿Quieres eliminar este reporte de la lista?"
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                confirmTone="destructive"
+                onConfirm={confirmRemoveReport}
+                onCancel={() => setPendingRemoval(null)}
+            />
         </div>
     );
 }

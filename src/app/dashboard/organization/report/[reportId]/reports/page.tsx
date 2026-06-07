@@ -7,6 +7,7 @@ import { TrendingUp, BarChart3, Radar, Layers3, ListFilter, ListChecks, Sparkles
 import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-radar-chart";
 import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
 import { Button } from "@/components/ui/button";
+import { buildReportPdfFilename, extractFilenameFromContentDisposition } from "@/lib/report-config";
 
 interface CategoryData {
     name: string;
@@ -64,8 +65,8 @@ interface ApiResponse {
         showActionPlan: boolean;
         showScaleLegend: boolean;
         logoUrl: string | null;
-        primaryColor: string;
-        secondaryColor: string;
+        titleColor: string;
+        textColor: string;
         headerTitle: string;
         headerSubtitle: string | null;
     };
@@ -88,6 +89,7 @@ export default function ReportsPage() {
         ? `&organizationId=${organizationId}&organizationName=${encodeURIComponent(organizationName ?? "")}`
         : "";
     const [loading, setLoading] = useState(true);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
     const [zoomInForms, setZoomInForms] = useState<FormData[]>([]);
     const [zoomOutForms, setZoomOutForms] = useState<FormData[]>([]);
     const [activeView, setActiveView] = useState<ContentView>("charts");
@@ -121,10 +123,10 @@ export default function ReportsPage() {
         showActionPlan: true,
         showScaleLegend: true,
         logoUrl: null,
-        primaryColor: "#2E6347",
-        secondaryColor: "#24533b",
         headerTitle: "Reporte de Evaluación Digital",
         headerSubtitle: "Resultados consolidados del diagnóstico",
+        titleColor: "#2E6347",
+        textColor: "#24533b",
     });
 
     const formatSavedAt = (date: string | null) => {
@@ -145,7 +147,7 @@ export default function ReportsPage() {
                     throw new Error('Failed to fetch personalized forms');
                 }
 
-                const data: ApiResponse = await response.json();
+                const data = await response.json();
                 setZoomInForms(data.zoomInForms || []);
                 setZoomOutForms(data.zoomOutForms || []);
                 setCategorizationSummary(data.categorizationSummary);
@@ -193,6 +195,9 @@ export default function ReportsPage() {
     const hasAnyChartData = zoomInForms.length > 0 || zoomOutForms.length > 0;
     const showZoomInCharts = chartFilter !== "zoom-out";
     const showZoomOutCharts = chartFilter !== "zoom-in";
+    const logoSrc = reportDisplayConfig.logoUrl ?? undefined;
+    const fallbackLogoSrc = "/logoudea.svg";
+    const reportPageTitle = reportDisplayConfig.headerSubtitle?.trim() || "Visualiza gráficas de radar y resúmenes ejecutivos";
     const totalFormularios =
         zoomInForms.length +
         zoomOutForms.length +
@@ -201,6 +206,7 @@ export default function ReportsPage() {
 
     const handleDownloadPdf = async () => {
         try {
+            setIsDownloadingPdf(true);
             const sep = contextQuery ? `?${contextQuery.slice(1)}` : "";
             const response = await fetch(`/api/organization/reports/${reportId}/pdf${sep}`);
             if (!response.ok) {
@@ -211,12 +217,14 @@ export default function ReportsPage() {
             const blobUrl = URL.createObjectURL(blob);
             const anchor = document.createElement("a");
             anchor.href = blobUrl;
-            anchor.download = `reporte-${reportId}.pdf`;
+            anchor.download = extractFilenameFromContentDisposition(response.headers.get("content-disposition")) ?? buildReportPdfFilename(reportDisplayConfig.headerTitle, Number.parseInt(reportId ?? "0", 10));
             anchor.click();
             URL.revokeObjectURL(blobUrl);
         } catch (downloadError) {
             console.error("Error downloading PDF", downloadError);
             alert("No se pudo descargar el informe en PDF");
+        } finally {
+            setIsDownloadingPdf(false);
         }
     };
 
@@ -247,7 +255,7 @@ export default function ReportsPage() {
                     {items.map((item, index) => (
                         <div
                             key={`${item.name}-${index}`}
-                            className={`rounded-lg px-3 py-2 text-sm text-black ${chipClass}`}
+                            className={`rounded-lg px-3 py-2 text-sm text-[#2E6347] ${chipClass}`}
                         >
                             {item.name}
                         </div>
@@ -262,38 +270,58 @@ export default function ReportsPage() {
             <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pr-16">
                         <div>
-                            <h1 className="text-3xl font-bold mb-2" style={{ color: reportDisplayConfig.primaryColor }}>
-                                {reportDisplayConfig.headerTitle}
+                            <h1 className="text-3xl font-bold mb-2 text-[#2E6347]">
+                                {reportPageTitle}
                             </h1>
-                            <p className="text-black mt-5 text-lg">
-                                {reportDisplayConfig.headerSubtitle || "Visualiza gráficas de radar y resúmenes ejecutivos"}
+                            <p className="mt-5 text-lg text-[#24533b]">
+                                Visualiza gráficas de radar y resúmenes ejecutivos, y descarga el informe en PDF con la configuración institucional seleccionada.
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
-                            {reportDisplayConfig.logoUrl ? (
+                            {logoSrc ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={reportDisplayConfig.logoUrl} alt="Logo institucional" className="h-12 w-auto rounded bg-white p-1" />
+                                <img
+                                    src={logoSrc}
+                                    alt="Logo institucional"
+                                    className="h-12 w-auto rounded bg-white p-1"
+                                    onError={(event) => {
+                                        const image = event.currentTarget;
+                                        if (image.dataset.fallbackApplied === "true") return;
+                                        image.dataset.fallbackApplied = "true";
+                                        image.src = fallbackLogoSrc;
+                                    }}
+                                />
                             ) : null}
                             <Button
                                 className="text-white"
-                                style={{ backgroundColor: reportDisplayConfig.secondaryColor }}
                                 onClick={handleDownloadPdf}
+                                disabled={isDownloadingPdf}
                             >
-                                Descargar en PDF
+                                {isDownloadingPdf ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Generando PDF...
+                                    </>
+                                ) : (
+                                    "Descargar en PDF"
+                                )}
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 {reportDisplayConfig.showExecutiveSummary && (
-                    <Card className="green-interactive mb-8 border" style={{ borderColor: reportDisplayConfig.primaryColor }}>
+                    <Card className="green-interactive mb-8 border">
                         <CardContent className="p-5">
-                            <h2 className="text-xl font-semibold mb-2" style={{ color: reportDisplayConfig.primaryColor }}>
+                            <h2 className="text-xl font-semibold mb-2 text-[#2E6347]">
                                 Resumen Ejecutivo
                             </h2>
-                            <p className="text-sm text-gray-700">
+                            <p className="text-sm text-[#24533b]">
                                 Este informe consolida el estado del diagnóstico digital con resultados por módulo,
                                 categorización, priorización y plan de acción recomendado.
                             </p>
@@ -309,7 +337,7 @@ export default function ReportsPage() {
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
                                     <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom In</p>
-                                    <p className="text-2xl font-bold">{zoomInForms.length}</p>
+                                    <p className="text-2xl font-bold text-[#24533b]">{zoomInForms.length}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -321,7 +349,7 @@ export default function ReportsPage() {
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
                                     <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom Out</p>
-                                    <p className="text-2xl font-bold">{zoomOutForms.length}</p>
+                                    <p className="text-2xl font-bold text-[#24533b]">{zoomOutForms.length}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -330,10 +358,10 @@ export default function ReportsPage() {
                     <Card className="green">
                         <CardContent className="pt-6">
                             <div className="flex items-center space-x-8">
-                                <TrendingUp className="h-9 w-9 text-blue-500" />
+                                <TrendingUp className="h-9 w-9 text-[#2E6347]" />
                                 <div>
                                     <p className="text-2xl font-medium text-[#2E6347]">Total Formularios</p>
-                                    <p className="text-2xl font-bold">
+                                    <p className="text-2xl font-bold text-[#24533b]">
                                         {totalFormularios}
                                     </p>
                                 </div>

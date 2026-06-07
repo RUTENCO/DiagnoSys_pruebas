@@ -519,6 +519,23 @@ async function main() {
 
   console.log('🎉 Seeding completed successfully!')
 
+  // Asegurar configuración de informe por defecto para organizaciones: usar /logoudea.png como logo por defecto
+  const orgUsers = await prisma.user.findMany({ where: { role: { name: 'organization' } }, select: { id: true } });
+  for (const org of orgUsers) {
+    await prisma.reportDisplayConfig.upsert({
+      where: { organizationUserId: org.id },
+      create: {
+        organizationUserId: org.id,
+        logoUrl: '/logoudea.svg',
+        primaryColor: '#2E6347',
+        secondaryColor: '#24533b',
+      },
+      update: {
+        // no sobrescribir si ya existe
+      },
+    });
+  }
+
 }
 
 main()

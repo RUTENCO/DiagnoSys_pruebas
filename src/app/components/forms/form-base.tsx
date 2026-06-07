@@ -43,6 +43,7 @@ interface FormBaseProps {
 const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState<ApiForm | null>(null);
     const [showModal, setShowModal] = useState(false);
@@ -228,58 +229,60 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
     ).length;
 
     const handleSubmit = async () => {
-        // Validar que al menos una categoría tenga items seleccionados y puntuados
-        const categoriesWithSelectedItems = categories.filter((cat) =>
-            cat.items.some((item) => item.selected && item.rating !== undefined)
-        );
-
-        if (categoriesWithSelectedItems.length === 0) {
-            setErrorModal("Por favor selecciona y califica al menos un item en cualquier categoría.");
-            setNextPathAfterModal(null);
-            return;
-        }
-
-        // Validar que todos los items seleccionados tengan rating
-        const itemsWithoutRating = categories.flatMap((cat) =>
-            cat.items.filter((i) => i.selected && i.rating === undefined)
-        );
-
-        if (itemsWithoutRating.length > 0) {
-            setErrorModal("Por favor asigna una calificación a todos los items seleccionados.");
-            setNextPathAfterModal(null);
-            return;
-        }
-
-        // Crear estructura de datos por categorías
-        const selectedCategories = categoriesWithSelectedItems.map((cat) => {
-            const selectedItems = cat.items
-                .filter((item) => item.selected && item.rating !== undefined)
-                .map((item) => ({
-                    itemId: item.id,
-                    score: item.rating!,
-                    isNew: item.id < 0, // Los items nuevos tendrán ID negativo
-                    name: item.name // Incluir nombre para todos los items
-                }));
-
-            return {
-                categoryId: cat.id,
-                name: cat.title, // Usar cat.title que es la propiedad correcta
-                selectedItems
-            };
-        });
-
-        const payload = {
-            selectedCategories
-        };
-
-        console.log('Submitting form:', {
-            formId,
-            categoriesCount: selectedCategories.length,
-            totalItems: selectedCategories.reduce((sum, cat) => sum + cat.selectedItems.length, 0),
-            payload
-        });
-
         try {
+            // Validar que al menos una categoría tenga items seleccionados y puntuados
+            const categoriesWithSelectedItems = categories.filter((cat) =>
+                cat.items.some((item) => item.selected && item.rating !== undefined)
+            );
+
+            if (categoriesWithSelectedItems.length === 0) {
+                setErrorModal("Por favor selecciona y califica al menos un item en cualquier categoría.");
+                setNextPathAfterModal(null);
+                return;
+            }
+
+            // Validar que todos los items seleccionados tengan rating
+            const itemsWithoutRating = categories.flatMap((cat) =>
+                cat.items.filter((i) => i.selected && i.rating === undefined)
+            );
+
+            if (itemsWithoutRating.length > 0) {
+                setErrorModal("Por favor asigna una calificación a todos los items seleccionados.");
+                setNextPathAfterModal(null);
+                return;
+            }
+
+            setIsSubmitting(true);
+
+            // Crear estructura de datos por categorías
+            const selectedCategories = categoriesWithSelectedItems.map((cat) => {
+                const selectedItems = cat.items
+                    .filter((item) => item.selected && item.rating !== undefined)
+                    .map((item) => ({
+                        itemId: item.id,
+                        score: item.rating!,
+                        isNew: item.id < 0, // Los items nuevos tendrán ID negativo
+                        name: item.name // Incluir nombre para todos los items
+                    }));
+
+                return {
+                    categoryId: cat.id,
+                    name: cat.title, // Usar cat.title que es la propiedad correcta
+                    selectedItems
+                };
+            });
+
+            const payload = {
+                selectedCategories
+            };
+
+            console.log('Submitting form:', {
+                formId,
+                categoriesCount: selectedCategories.length,
+                totalItems: selectedCategories.reduce((sum, cat) => sum + cat.selectedItems.length, 0),
+                payload
+            });
+
             const completeParams = new URLSearchParams();
             if (organizationId) {
                 completeParams.set("organizationId", organizationId);
@@ -317,6 +320,8 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             console.error("Error submitting form:", err);
             setErrorModal(err instanceof Error ? err.message : "Error al enviar la evaluación. Por favor intenta de nuevo.");
             setNextPathAfterModal(null);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -435,11 +440,21 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             ))}
 
             <div className={styles.buttonGroup}>
-                <button className={styles.backButton} onClick={() => router.back()}>
+                <button className={styles.backButton} onClick={() => router.back()} disabled={isSubmitting}>
                     Atrás
                 </button>
-                <button className={styles.submitButton} onClick={handleSubmit}>
-                    Enviar evaluación
+                <button className={styles.submitButton} onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? (
+                        <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Enviando...
+                        </>
+                    ) : (
+                        "Enviar evaluación"
+                    )}
                 </button> 
                 
             </div>

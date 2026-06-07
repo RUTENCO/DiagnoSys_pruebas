@@ -25,6 +25,7 @@ model User {
   name      String
   email     String       @unique
   password  String
+  avatarUrl String?
   sector    String?
   companySize String?
   roleId    Int
@@ -60,6 +61,12 @@ model User {
 
   // Configuraciones actualizadas por este admin
   updatedReportConfigs ReportDisplayConfig[] @relation("AdminUpdatedReportConfig")
+
+  // Organizaciones gestionadas por consultores sin crear cuenta en User
+  consultantManagedOrganizations ConsultantOrganization[] @relation("ConsultantOrganizationOwner")
+
+  // Organizaciones consultoras que luego se vinculan a una cuenta real
+  linkedConsultantOrganizations ConsultantOrganization[] @relation("ConsultantOrganizationLinkedUser")
 }
 
 model ResetToken {
@@ -69,6 +76,27 @@ model ResetToken {
   createdAt DateTime @default(now())
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ConsultantOrganization {
+  id Int @id @default(autoincrement())
+
+  consultantId Int
+  consultant User @relation("ConsultantOrganizationOwner", fields: [consultantId], references: [id], onDelete: Cascade)
+
+  linkedUserId Int?
+  linkedUser User? @relation("ConsultantOrganizationLinkedUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+
+  name String
+  email String
+  sector String?
+  companySize String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([consultantId, email])
+  @@index([email])
 }
 
 // =============================
@@ -158,6 +186,8 @@ model ReportDisplayConfig {
   showScaleLegend Boolean @default(true)
 
   logoUrl String?
+  logoData Bytes?
+  logoContentType String?
   primaryColor String? @default("#2E6347")
   secondaryColor String? @default("#24533b")
   headerTitle String? @default("Reporte de Evaluación Digital")

@@ -80,6 +80,7 @@ function PriorityQuadrantsContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [feedbackModal, setFeedbackModal] = useState<string | null>(null);
   const [nextPathAfterModal, setNextPathAfterModal] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [quadrants, setQuadrants] = useState<{
     q1: Note[];
     q2: Note[];
@@ -97,6 +98,7 @@ function PriorityQuadrantsContent() {
   const [loading, setLoading] = useState(true);
   const scrollAreaClass = "max-h-[260px] overflow-y-auto overflow-x-visible px-1 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [scrollbar-gutter:stable_both-edges] [&::-webkit-scrollbar]:hidden";
   const hiddenScrollbarClass = "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden";
+  const quadrantDropZoneClass = "min-h-[160px] sm:min-h-[200px] w-full";
 
   const quadrantKeys = ["q1", "q2", "q3", "q4"] as const;
 
@@ -365,6 +367,11 @@ function PriorityQuadrantsContent() {
 
     setCategories(newCategories);
     setQuadrants(newQuadrants);
+    setSelectedNoteIds((prev) => {
+      const next = new Set(prev);
+      movingNotes.forEach((note) => next.delete(note.id));
+      return next;
+    });
 
     if (isQuadrantKey(destination.droppableId)) {
       setSelectedNoteIds((prev) => {
@@ -402,6 +409,7 @@ function PriorityQuadrantsContent() {
     };
 
     try {
+      setIsSaving(true);
       const res = await fetch(withScopeContext("/api/modules/priorization/save"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -415,6 +423,8 @@ function PriorityQuadrantsContent() {
       console.error(err);
       setFeedbackModal("Error saving data ❌");
       setNextPathAfterModal(null);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -450,7 +460,7 @@ function PriorityQuadrantsContent() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex flex-col gap-2 ${scrollAreaClass}`}
+                    className={`flex flex-col gap-2 min-h-[150px] w-full ${scrollAreaClass}`}
                   >
                     {category.notes.map((note, index) => (
                       <Draggable
@@ -562,7 +572,7 @@ function PriorityQuadrantsContent() {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`green-interactive border-2 sm:border-4 ${q.border} min-h-40 sm:min-h-[200px] flex flex-col p-2.5 sm:p-4 relative`}
+                    className={`green-interactive border-2 sm:border-4 ${q.border} ${quadrantDropZoneClass} flex flex-col p-2.5 sm:p-4 relative`}
                   >
                     <h3 className="text-xl sm:text-2xl font-semibold text-green-800 mb-2 sm:mb-3">
                       {q.title}
@@ -612,6 +622,7 @@ function PriorityQuadrantsContent() {
           variant="secondary"
           size="lg"
           onClick={() => router.push(prioritizationBackPath)}
+          disabled={isSaving}
           className="w-full max-w-[300px]"
         >
           Atrás
@@ -620,10 +631,20 @@ function PriorityQuadrantsContent() {
           variant="default"
           size="lg"
           onClick={handleSave}
-          disabled={!allAssigned}
+          disabled={!allAssigned || isSaving}
           className="w-full max-w-[300px]"
         >
-          Siguiente
+          {isSaving ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Guardando...
+            </>
+          ) : (
+            "Siguiente"
+          )}
         </Button>
       </div>
 

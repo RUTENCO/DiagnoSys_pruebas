@@ -29,6 +29,7 @@ export async function GET(req: Request) {
           id: true,
           name: true,
           email: true,
+          avatarUrl: true,
           sector: true,
           companySize: true,
           role: {
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, name, sector, companySize, password, currentPassword } = await req.json();
+    const { email, name, sector, companySize, password, currentPassword, avatarUrl } = await req.json();
 
     // Verificar si el usuario existe
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -130,6 +131,7 @@ export async function POST(req: Request) {
         name,
         sector: sector ?? null,
         companySize: companySize ?? null,
+        ...(typeof avatarUrl === "string" ? { avatarUrl } : {}),
         ...(password ? { password: await bcrypt.hash(password, 10) } : {}),
       },
     });

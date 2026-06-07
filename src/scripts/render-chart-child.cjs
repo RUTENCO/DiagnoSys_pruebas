@@ -1,5 +1,38 @@
 #!/usr/bin/env node
-const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+const { createCanvas, registerFont } = require('canvas');
+const fs = require('node:fs');
+const { Chart, registerables } = require('chart.js');
+
+Chart.register(...registerables);
+
+const CHART_FONT_FAMILY = 'DiagnoSysSans';
+const CHART_FONT_CANDIDATES = [
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+  String.raw`C:\Windows\Fonts\arial.ttf`,
+  String.raw`C:\Windows\Fonts\calibri.ttf`,
+];
+
+let chartFontReady = false;
+
+function ensureChartFont() {
+  if (chartFontReady) return;
+
+  for (const fontPath of CHART_FONT_CANDIDATES) {
+    if (!fs.existsSync(fontPath)) continue;
+
+    try {
+      registerFont(fontPath, { family: CHART_FONT_FAMILY });
+      Chart.defaults.font.family = CHART_FONT_FAMILY;
+      chartFontReady = true;
+      return;
+    } catch {
+      continue;
+    }
+  }
+
+  chartFontReady = true;
+}
 
 async function readStdin() {
   const chunks = [];
@@ -17,10 +50,14 @@ async function readStdin() {
     const opts = JSON.parse(raw);
     const labels = Array.isArray(opts.labels) ? opts.labels : [];
     const values = Array.isArray(opts.values) ? opts.values : [];
-    const width = typeof opts.width === 'number' ? opts.width : 600;
-    const height = typeof opts.height === 'number' ? opts.height : 360;
+    const width = typeof opts.width === 'number' ? opts.width : 320;
+    const height = typeof opts.height === 'number' ? opts.height : 320;
 
-    const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height, backgroundColour: 'white' });
+    const canvas = createCanvas(width, height);
+    const context = canvas.getContext('2d');
+    ensureChartFont();
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, width, height);
 
     const configuration = {
       type: 'radar',
@@ -37,22 +74,38 @@ async function readStdin() {
         ],
       },
       options: {
+        font: {
+          family: CHART_FONT_FAMILY,
+        },
+        aspectRatio: 1,
+        layout: {
+          padding: 12,
+        },
         scales: {
           r: {
             beginAtZero: true,
             suggestedMin: 0,
             suggestedMax: Math.max(5, ...(values.length ? values : [0])),
+            ticks: {
+              display: false,
+              font: {
+                family: CHART_FONT_FAMILY,
+              },
+            },
           },
         },
         plugins: { legend: { display: false } },
       },
     };
 
-    const buffer = await chartJSNodeCanvas.renderToBuffer(configuration, 'image/png');
+    const chart = new Chart(context, configuration);
+
+    const buffer = canvas.toBuffer('image/png');
+    chart.destroy();
     // write base64 to stdout so parent can decode
     process.stdout.write(buffer.toString('base64'));
   } catch (err) {
-    console.error('Child renderer error:', err && err.stack ? err.stack : String(err));
+    console.error('Child renderer error:', err?.stack || String(err));
     process.exitCode = 2;
   }
 })();

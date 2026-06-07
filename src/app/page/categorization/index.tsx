@@ -77,6 +77,7 @@ function ZoomOutCategorizationContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [feedbackModal, setFeedbackModal] = useState<string | null>(null);
   const [nextPathAfterModal, setNextPathAfterModal] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [destinations, setDestinations] = useState<{
     opportunities: Note[];
     needs: Note[];
@@ -91,6 +92,7 @@ function ZoomOutCategorizationContent() {
 
   const [loading, setLoading] = useState(true);
   const scrollAreaClass = "max-h-[260px] overflow-y-auto overflow-x-visible [scrollbar-width:none] [-ms-overflow-style:none] [scrollbar-gutter:stable_both-edges] [&::-webkit-scrollbar]:hidden";
+  const dropZoneClass = "min-h-[150px] w-full px-2 py-2";
 
   const destinationKeys = ["opportunities", "needs", "problems"] as const;
 
@@ -314,6 +316,11 @@ function ZoomOutCategorizationContent() {
 
       setCategories(newCategories);
       setDestinations(newDestinations);
+      setSelectedNoteIds((prev) => {
+        const next = new Set(prev);
+        movingNotes.forEach((note) => next.delete(note.id));
+        return next;
+      });
       return;
     }
 
@@ -350,6 +357,11 @@ function ZoomOutCategorizationContent() {
 
     setCategories(newCategories);
     setDestinations(newDestinations);
+    setSelectedNoteIds((prev) => {
+      const next = new Set(prev);
+      movingNotes.forEach((note) => next.delete(note.id));
+      return next;
+    });
 
     if (!moveSelectedGroup) {
       setSelectedNoteIds(new Set([draggedNote.id]));
@@ -357,6 +369,9 @@ function ZoomOutCategorizationContent() {
   };
 
   if (loading) return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
+
+  const visibleCategories =
+  categories.length > 0 ? categories : defaultCategories;
 
   // Calcular si ya están todos los papelitos clasificados
   const allNotes = categories.flatMap((c) => c.notes);
@@ -372,6 +387,7 @@ function ZoomOutCategorizationContent() {
   // Función de guardar
   const handleSave = async () => {
     try {
+      setIsSaving(true);
       const res = await fetch(withScopeContext("/api/modules/categorization/save"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -385,6 +401,8 @@ function ZoomOutCategorizationContent() {
       console.error(err);
       setFeedbackModal("Error saving data ❌");
       setNextPathAfterModal(null);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -407,13 +425,13 @@ function ZoomOutCategorizationContent() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {categories.map((category) => (
+            {visibleCategories.map((category) => (
               <div key={category.id} className={`${category.color} rounded-xl p-4 shadow-md flex flex-col`}>
                 <h2 className="font-semibold text-green-800 mb-2 text-lg">{category.title}</h2>
 
                 <Droppable droppableId={`category-${category.id}`}>
                   {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className={`flex flex-col gap-2 px-2 py-2 ${scrollAreaClass}`}>
+                    <div ref={provided.innerRef} {...provided.droppableProps} className={`flex flex-col gap-2 ${dropZoneClass} ${scrollAreaClass}`}>
                       {category.notes.map((note, index) => (
                         <Draggable key={note.id} draggableId={note.id} index={index}>
                           {(provided) => (
@@ -456,7 +474,7 @@ function ZoomOutCategorizationContent() {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`min-h-[100px] green-interactive rounded-lg shadow-md p-5 flex flex-col gap-3 ${scrollAreaClass}`}
+                        className={`green-interactive rounded-lg shadow-md p-5 flex flex-col gap-3 ${dropZoneClass} ${scrollAreaClass}`}
                       >
                         {destinations[key].map((note, index) => (
                           <Draggable key={note.id} draggableId={note.id} index={index}>
@@ -493,6 +511,7 @@ function ZoomOutCategorizationContent() {
           variant="secondary"
           size="lg"
           onClick={() => router.push(categorizationBackPath)}
+          disabled={isSaving}
           className="w-full max-w-[300px]"
         >
           Atrás
@@ -501,10 +520,20 @@ function ZoomOutCategorizationContent() {
           variant="default"
           size="lg"
           onClick={handleSave}
-          disabled={!allAssigned}
+          disabled={!allAssigned || isSaving}
           className="w-full max-w-[300px]"
         >
-          Siguiente
+          {isSaving ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Guardando...
+            </>
+          ) : (
+            "Siguiente"
+          )}
         </Button>
       </div>
       {/* Modal */}
@@ -524,8 +553,37 @@ function ZoomOutCategorizationContent() {
     </div>
   );
 }
+const defaultCategories: Category[] = [
+  {
+    id: "macro",
+    title: "Fuerzas Macroeconómicas",
+    color: "green-interactive border border-3 border-teal-200",
+    notes: [],
+  },
+  {
+    id: "industry",
+    title: "Fuerzas de la Industria",
+    color: "green-interactive border border-3 border-orange-200",
+    notes: [],
+  },
+  {
+    id: "market",
+    title: "Fuerzas del Mercado",
+    color: "green-interactive border border-3 border-lime-200",
+    notes: [],
+  },
+  {
+    id: "trends",
+    title: "Tendencias Clave",
+    color: "green-interactive border border-3 border-red-200",
+    notes: [],
+  },
+];
+
+
 
 export default function ZoomOutCategorization() {
+
   return (
     <Suspense fallback={<p className="text-center mt-10 text-gray-500">Loading data...</p>}>
       <ZoomOutCategorizationContent />

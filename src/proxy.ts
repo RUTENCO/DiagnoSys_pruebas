@@ -2,6 +2,26 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
+const PUBLIC_FILE = /\.(.*)$/;
+
+function isPublicPath(pathname: string) {
+  if (pathname.startsWith("/_next")) {
+    return true;
+  }
+
+  if (PUBLIC_FILE.test(pathname)) {
+    return true;
+  }
+
+  return [
+    "/auth",
+    "/auth/card",
+    "/api/auth",
+    "/favicon.ico",
+    "/logo.svg",
+  ].some((path) => pathname.startsWith(path));
+}
+
 export default withAuth(
   function proxy(req) {
     const { pathname } = req.nextUrl;
@@ -10,18 +30,7 @@ export default withAuth(
     const roleName = rawRole?.toLowerCase();
 
     // Ignorar archivos estaticos y rutas publicas
-    const PUBLIC_FILE = /\.(.*)$/;
-    const isPublicRoute = [
-      "/auth",
-      "/auth/card",
-      "/api/auth",
-      "/favicon.ico",
-      "/logo.svg",
-    ].some((path) => pathname.startsWith(path));
-
-    const isStaticFile = PUBLIC_FILE.test(pathname);
-
-    if (isPublicRoute || isStaticFile) {
+    if (isPublicPath(pathname)) {
       return NextResponse.next();
     }
 
@@ -31,8 +40,18 @@ export default withAuth(
     }
 
     // Rutas protegidas por rol
+    const isReportConfigApi = pathname.startsWith("/api/admin/report-config");
+
     if (
-      (pathname.startsWith("/dashboard/admin") || pathname.startsWith("/api/admin")) &&
+      pathname.startsWith("/dashboard/admin") &&
+      roleName !== "admin"
+    ) {
+      return NextResponse.redirect(new URL("/auth/card", req.url));
+    }
+
+    if (
+      pathname.startsWith("/api/admin") &&
+      !isReportConfigApi &&
       roleName !== "admin"
     ) {
       return NextResponse.redirect(new URL("/auth/card", req.url));
@@ -60,11 +79,14 @@ export default withAuth(
     pages: {
       signIn: "/auth/card",
     },
+    callbacks: {
+      authorized: ({ req, token }) => {
+        if (isPublicPath(req.nextUrl.pathname)) {
+          return true;
+        }
+
+        return !!token;
+      },
+    },
   }
 );
-
-export const config = {
-  matcher: [
-    "/((?!api/auth|auth|_next/static|_next/image|favicon.ico|.*\\.).*)",
-  ],
-};

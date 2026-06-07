@@ -18,7 +18,7 @@ import {
     ChartTooltipContent,
 } from "@/app/components/shadcn-charts/chart"
 
-export const description = "A radar chart with a grid filled"
+const description = "A radar chart with a grid filled"
 
 const chartData = [
     { month: "January", desktop: 186 },
