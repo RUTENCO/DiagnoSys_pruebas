@@ -473,6 +473,7 @@ function PriorityQuadrantsContent() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
+                            style={provided.draggableProps.style as React.CSSProperties}
                             className={`px-2.5 py-1.5 text-sm box-border ${note.color} text-gray-700 rounded-md shadow cursor-pointer transition ${
                               selectedNoteIds.has(note.id)
                                 ? "ring-2 ring-[#2E6347]"
@@ -595,6 +596,7 @@ function PriorityQuadrantsContent() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
+                              style={provided.draggableProps.style as React.CSSProperties}
                               className={`px-2 py-1 text-xs sm:px-2.5 sm:py-1.5 sm:text-sm box-border ${note.color} rounded-md shadow text-gray-700 cursor-pointer transition ${
                                 selectedNoteIds.has(note.id)
                                   ? "ring-2 ring-inset ring-[#2E6347]"

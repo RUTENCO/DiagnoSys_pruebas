@@ -39,6 +39,7 @@
     "nodemailer": "^7.0.11",
     "pdf-lib": "^1.17.1",
     "pg": "^8.20.0",
+    "radix-ui": "^1.5.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.62.0",

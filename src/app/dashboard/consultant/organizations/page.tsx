@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import ConfirmationPopup from "@/app/components/ConfirmationPopup";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type OrganizationSummary = {
   id: number;
@@ -70,6 +71,26 @@ export default function ConsultantOrganizationsPage() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 5000); // desaparece en 5 segundos
+
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000); // desaparece en 5 segundos
+
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,84 +245,83 @@ export default function ConsultantOrganizationsPage() {
         </div>
 
         {mounted && (
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="w-fit bg-[#2E6347] hover:bg-[#265239] text-white">
-              Crear organización
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="green-interactive sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Crear Organización</DialogTitle>
-            </DialogHeader>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="w-fit bg-[#2E6347] hover:bg-[#265239] text-white">
+                Crear organización
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="green-interactive sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Crear Organización</DialogTitle>
+              </DialogHeader>
 
-            <form onSubmit={handleCreate} className="space-y-4" autoComplete="off">
-              <input
-                className="w-full border rounded-md px-3 py-2"
-                placeholder="Nombre de usuario de la organización"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
-                autoComplete="off"
-                required
-              />
-              <input
-                className="w-full border rounded-md px-3 py-2"
-                type="email"
-                placeholder="Correo electrónico de la organización"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
-                required
-              />
-              <select
-                className="w-full border rounded-md px-3 py-2"
-                value={sector}
-                onChange={(e) => setSector(e.target.value)}
-              >
-                <option value="">Seleccionar Sector (opcional)</option>
-                <option value="Gobierno">Gobierno</option>
-                <option value="Salud">Salud</option>
-                <option value="Educación">Educación</option>
-                <option value="Informática">Informática</option>
-                <option value="Telecomunicaciones">Telecomunicaciones</option>
-                <option value="Otros">Otros</option>
-              </select>
-              <select
-                className="w-full border rounded-md px-3 py-2"
-                value={companySize}
-                onChange={(e) => setCompanySize(e.target.value)}
-              >
-                <option value="">Seleccionar Tamaño de Empresa (opcional)</option>
-                <option value="0-10">0-10 empleados</option>
-                <option value="11-50">11-50 empleados</option>
-                <option value="51-250">51 a 250 empleados</option>
-                <option value="250+">Más de 250 empleados</option>
-              </select>
+              <form onSubmit={handleCreate} className="space-y-4" autoComplete="off">
+                <input
+                  className="w-full border rounded-md px-3 py-2 placeholder:text-gray-700"
+                  placeholder="Nombre de usuario de la organización"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  autoComplete="off"
+                  required
+                />
+                <input
+                  className="w-full border rounded-md px-3 py-2 placeholder:text-gray-700"
+                  type="email"
+                  placeholder="Correo electrónico de la organización"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
+                  required
+                />
+                <Select value={sector} onValueChange={(value) => setSector(value)}>
+                  <SelectTrigger className="w-full bg-green-100 text-gray-900 border rounded-md px-3 py-2">
+                    <SelectValue placeholder="Seleccionar Sector (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-green-100">
+                    <SelectItem value="Gobierno" className="focus:bg-green-800 focus:text-white">Gobierno</SelectItem>
+                    <SelectItem value="Salud" className="focus:bg-green-800 focus:text-white">Salud</SelectItem>
+                    <SelectItem value="Educación" className="focus:bg-green-800 focus:text-white">Educación</SelectItem>
+                    <SelectItem value="Informática" className="focus:bg-green-800 focus:text-white">Informática</SelectItem>
+                    <SelectItem value="Telecomunicaciones" className="focus:bg-green-800 focus:text-white">Telecomunicaciones</SelectItem>
+                    <SelectItem value="Otros" className="focus:bg-green-800 focus:text-white">Otros</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setCreateDialogOpen(false)}
-                  disabled={saving}
-                  className="w-full sm:w-auto"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full bg-[#2E6347] text-white hover:bg-[#265239] sm:w-auto"
-                >
-                  {saving ? "Creando..." : "Crear Organización"}
-                </Button>
-              </DialogFooter>
-            </form>
+                <Select value={companySize} onValueChange={(value) => setCompanySize(value)}>
+                  <SelectTrigger className="w-full bg-green-100 text-gray-900 border rounded-md px-3 py-2">
+                    <SelectValue placeholder="Seleccionar Tamaño de Empresa (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-green-100">
+                    <SelectItem value="0-10" className="focus:bg-green-800 focus:text-white">0-10 empleados</SelectItem>
+                    <SelectItem value="11-50" className="focus:bg-green-800 focus:text-white">11-50 empleados</SelectItem>
+                    <SelectItem value="51-250" className="focus:bg-green-800 focus:text-white">51 a 250 empleados</SelectItem>
+                    <SelectItem value="250+" className="focus:bg-green-800 focus:text-white">Más de 250 empleados</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            {message && <p className="text-green-700">{message}</p>}
-            {error && <p className="text-red-600">{error}</p>}
-          </DialogContent>
-        </Dialog>
+                <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-center sm:gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setCreateDialogOpen(false)}
+                    disabled={saving}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full bg-[#2E6347] text-white hover:bg-[#265239] sm:w-auto"
+                  >
+                    {saving ? "Creando..." : "Crear Organización"}
+                  </Button>
+                </DialogFooter>
+              </form>
+              {error && <p className="text-red-600">{error}</p>}
+            </DialogContent>
+          </Dialog>
         )}
       </div>
 
@@ -324,7 +344,7 @@ export default function ConsultantOrganizationsPage() {
         </div>
       </div>
 
-      {message && <p className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700">{message}</p>}
+      {message && <p className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">{message}</p>}
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{error}</p>}
 
       <section className="green-interactive rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-lg transition">
