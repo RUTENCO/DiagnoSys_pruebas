@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type OrganizationSummary = {
   id: number;
+  consultantOrganizationId?: number;
+  organizationUserId?: number | null;
   name: string;
   userName: string;
   email: string;
@@ -142,7 +144,7 @@ export default function ConsultantOrganizationsPage() {
   };
 
   const handleOpenEdit = (org: OrganizationSummary) => {
-    setEditingOrgId(org.id);
+    setEditingOrgId(org.consultantOrganizationId ?? org.id);
     setEditUserName(org.name || "");
     setEditEmail(org.email || "");
     setEditSector(org.sector || "");
@@ -224,7 +226,9 @@ export default function ConsultantOrganizationsPage() {
         throw new Error(data?.error || "Error al eliminar la organización de la lista");
       }
 
-      setOrganizations((prev) => prev.filter((organization) => organization.id !== orgId));
+      setOrganizations((prev) =>
+        prev.filter((organization) => (organization.consultantOrganizationId ?? organization.id) !== orgId)
+      );
       setMessage(data.message || "Organización eliminada de tu lista");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al eliminar la organización de la lista");
@@ -396,15 +400,15 @@ export default function ConsultantOrganizationsPage() {
                   Editar
                 </button>
                 <button
-                  onClick={() => handleRemoveOrganization(org.id)}
-                  disabled={removingOrgId === org.id}
+                  onClick={() => handleRemoveOrganization(org.consultantOrganizationId ?? org.id)}
+                  disabled={removingOrgId === (org.consultantOrganizationId ?? org.id)}
                   className="border border-red-400 text-red-600 px-3 py-2 rounded-md cursor-pointer disabled:opacity-60"
                 >
-                  {removingOrgId === org.id ? "Eliminando..." : "Eliminar"}
+                  {removingOrgId === (org.consultantOrganizationId ?? org.id) ? "Eliminando..." : "Eliminar"}
                 </button>
               </div>
 
-              {editingOrgId === org.id ? (
+              {editingOrgId === (org.consultantOrganizationId ?? org.id) ? (
                 <div className="mt-4 space-y-3 border-t border-primary/20 pt-4">
                   <input
                     className="w-full border rounded-md px-3 py-2"
@@ -447,7 +451,7 @@ export default function ConsultantOrganizationsPage() {
                   </select>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleSaveEdit(org.id)}
+                      onClick={() => handleSaveEdit(org.consultantOrganizationId ?? org.id)}
                       disabled={updatingOrg}
                       className="bg-primary text-white px-3 py-2 rounded-md disabled:opacity-60"
                     >

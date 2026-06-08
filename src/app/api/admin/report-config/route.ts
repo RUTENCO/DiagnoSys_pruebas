@@ -36,14 +36,32 @@ export async function GET(request: NextRequest) {
     let organizations: Array<{ id: number; name: string; email: string }>;
 
     if (roleName === "consultant") {
-      organizations = await prisma.user.findMany({
+      const consultantOrganizations = await prisma.consultantOrganization.findMany({
         where: {
-          role: { name: "organization" },
-          organizationAudits: { some: { consultantId } },
+          consultantId,
+          linkedUserId: { not: null },
         },
-        select: { id: true, name: true, email: true },
+        select: {
+          name: true,
+          email: true,
+          linkedUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
         orderBy: { name: "asc" },
       });
+
+      organizations = consultantOrganizations
+        .filter((organization) => organization.linkedUser)
+        .map((organization) => ({
+          id: organization.linkedUser!.id,
+          name: organization.name,
+          email: organization.email,
+        }));
     } else if (roleName === "organization") {
       organizations = [
         {
@@ -161,11 +179,10 @@ export async function PUT(request: NextRequest) {
 
     if (session.user.role?.name === "consultant") {
       const consultantId = Number.parseInt(session.user.id, 10);
-      const accessibleOrganization = await prisma.user.findFirst({
+      const accessibleOrganization = await prisma.consultantOrganization.findFirst({
         where: {
-          id: organizationUserId,
-          role: { name: "organization" },
-          organizationAudits: { some: { consultantId } },
+          consultantId,
+          linkedUserId: organizationUserId,
         },
         select: { id: true },
       });

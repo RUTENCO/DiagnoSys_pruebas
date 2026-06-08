@@ -68,14 +68,19 @@ export async function GET() {
       }),
     ]);
 
-    const organizations = await prisma.user.findMany({
+    const consultantOrganizations = await prisma.consultantOrganization.findMany({
       where: {
-        role: {
-          name: "organization",
-        },
-        organizationAudits: {
-          some: {
-            consultantId,
+        consultantId,
+        linkedUserId: { not: null },
+      },
+      include: {
+        linkedUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            sector: true,
+            companySize: true,
           },
         },
       },
@@ -85,7 +90,10 @@ export async function GET() {
     });
 
     const processedOrganizations: OrganizationReportsSummary[] = await Promise.all(
-      organizations.map(async (organizationUser) => {
+      consultantOrganizations
+        .filter((organization) => organization.linkedUser)
+        .map(async (organization) => {
+        const organizationUser = organization.linkedUser!;
         const organizationUserId = organizationUser.id;
 
         const reports = await prisma.report.findMany({
@@ -135,11 +143,11 @@ export async function GET() {
 
         return {
           id: organizationUser.id,
-          name: organizationUser.name,
-          userName: organizationUser.name,
-          email: organizationUser.email,
-          sector: organizationUser.sector,
-          companySize: organizationUser.companySize,
+          name: organization.name,
+          userName: organization.name,
+          email: organization.email,
+          sector: organization.sector,
+          companySize: organization.companySize,
           stats: {
             reportsCount: reportsSummary.length,
           },
