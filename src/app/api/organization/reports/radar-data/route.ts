@@ -319,7 +319,7 @@ export async function GET(request: NextRequest) {
             lastMedium2?.createdAt,
         ]
             .filter(Boolean)
-            .sort((a, b) => b!.getTime() - a!.getTime())[0];
+            .sort((a, b) => b!.getTime() - a!.getTime())[0] ?? null;
 
         let prioritizationSummary = {
             hasData: false,
@@ -332,25 +332,24 @@ export async function GET(request: NextRequest) {
         };
 
         if (latestPrioritizationDate) {
-            const { start, end } = getSecondRange(latestPrioritizationDate);
             const [highPriority, mediumPriority, lowPriority, mediumPriority2] = await Promise.all([
                 prisma.highPriority.findMany({
-                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    where: { userId, reportId: reportIdInt, createdAt: lastHigh?.createdAt ?? latestPrioritizationDate },
                     orderBy: { id: "asc" },
                     select: { name: true },
                 }),
                 prisma.mediumPriority.findMany({
-                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    where: { userId, reportId: reportIdInt, createdAt: lastMedium?.createdAt ?? latestPrioritizationDate },
                     orderBy: { id: "asc" },
                     select: { name: true },
                 }),
                 prisma.lowPriority.findMany({
-                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    where: { userId, reportId: reportIdInt, createdAt: lastLow?.createdAt ?? latestPrioritizationDate },
                     orderBy: { id: "asc" },
                     select: { name: true },
                 }),
                 prisma.mediumPriority2.findMany({
-                    where: { userId, reportId: reportIdInt, createdAt: { gte: start, lt: end } },
+                    where: { userId, reportId: reportIdInt, createdAt: lastMedium2?.createdAt ?? latestPrioritizationDate },
                     orderBy: { id: "asc" },
                     select: { name: true },
                 }),
