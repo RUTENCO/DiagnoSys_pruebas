@@ -2,17 +2,8 @@
 
 import Avatar from "@/app/components/atoms/avatar";
 import TextLabel from "@/app/components/atoms/textLabel";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import EditProfileModal from "../editProfileModal";
-
-const roleLabels: Record<string, string> = {
-  admin: "Administrador",
-  administrator: "Administrador",
-  Administrator: "Administrador",
-  consultant: "Consultor",
-  Consultant: "Consultor",
-  organization: "Organización",
-  Organization: "Organización",
-};
 
 type UserInfoProps = {
   name: string;
@@ -22,6 +13,16 @@ type UserInfoProps = {
 };
 
 export default function UserInfo({ name, gmail, role, avatar }: Readonly<UserInfoProps>) {
+  const { t } = useLanguage();
+  const roleLabels: Record<string, string> = {
+    admin: t("profile.role.admin"),
+    administrator: t("profile.role.admin"),
+    Administrator: t("profile.role.admin"),
+    consultant: t("profile.role.consultant"),
+    Consultant: t("profile.role.consultant"),
+    organization: t("profile.role.organization"),
+    Organization: t("profile.role.organization"),
+  };
   const roleLabel = roleLabels[role] ?? role;
 
   return (

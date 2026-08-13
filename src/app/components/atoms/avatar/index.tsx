@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type AvatarProps = {
   src?: string;
@@ -18,6 +19,7 @@ export default function Avatar({
   size = 48,
   editable = true,
 }: Readonly<AvatarProps>) {
+  const { t } = useLanguage();
   const fallbackSrc = "/logoudea.svg";
   const [imageSrc, setImageSrc] = useState(src || fallbackSrc);
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -100,7 +102,7 @@ export default function Avatar({
         onClick={openViewer}
         disabled={uploading}
         className={`relative rounded-full border-2 border-[#2E6347] bg-white p-1 object-contain transition ${editable ? "cursor-pointer hover:scale-105" : "cursor-default"} ${uploading ? "opacity-70 cursor-not-allowed" : ""}`}
-        aria-label="Ver avatar ampliado"
+        aria-label={t("avatar.viewEnlarged")}
       >
         <Image
           src={imageSrc}
@@ -115,7 +117,7 @@ export default function Avatar({
           }}
         />
         {uploading && (
-          <span className="absolute -bottom-1 -right-1 bg-white text-xs px-2 py-0.5 rounded text-[#2E6347] border border-emerald-200">Subiendo...</span>
+          <span className="absolute -bottom-1 -right-1 bg-white text-xs px-2 py-0.5 rounded text-[#2E6347] border border-emerald-200">{t("avatar.uploading")}</span>
         )}
       </button>
 
@@ -123,7 +125,7 @@ export default function Avatar({
         <div className="fixed inset-0 z-100 flex items-center justify-center px-4">
           <button
             type="button"
-            aria-label="Cerrar vista ampliada del avatar"
+            aria-label={t("avatar.closeEnlarged")}
             className="absolute inset-0 bg-black/70"
             onClick={() => setViewerOpen(false)}
           />
@@ -140,12 +142,12 @@ export default function Avatar({
 
             <div className="mt-6 flex flex-col gap-3">
               <Button type="button" variant="outline" onClick={() => setViewerOpen(false)}>
-                Cerrar
+                {t("avatar.close")}
               </Button>
 
               {editable && (
                 <label className="inline-flex items-center justify-center rounded-md bg-[#2E6347] px-4 py-2 text-sm font-medium text-white hover:bg-[#265239] cursor-pointer">
-                  {uploading ? "Subiendo..." : "Cambiar imagen"}
+                  {uploading ? t("avatar.uploading") : t("avatar.changeImage")}
                   <input
                     type="file"
                     accept="image/*"

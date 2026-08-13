@@ -3,6 +3,7 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import { FileText } from "lucide-react"; 
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const TargetFormCard = ({
   title = "Title",
@@ -13,6 +14,7 @@ const TargetFormCard = ({
   formId = "",
 }) => {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const handleEdit = () => {
     // Determinar la ruta correcta para el edit basándose en el contexto
@@ -51,14 +53,14 @@ const TargetFormCard = ({
                 : "bg-red-100 text-red-700"
             }`}
           >
-            {publicF ? "Público" : "Privado"}
+            {publicF ? t("common.public") : t("common.private")}
           </span>
         </div>
 
         <p className="text-sm text-gray-800 mb-4">{description}</p>
         
         <p className="text-sm text-gray-700 mb-6">
-          {categorieNumber} categorías • {itemNumber} ítems
+          {categorieNumber} {t("targetForm2.categoriesLabel")} • {itemNumber} {t("targetForm2.itemsLabel")}
         </p>
       </div>
 
@@ -67,13 +69,13 @@ const TargetFormCard = ({
           className="bg-[#2E6347] text-white px-4 py-2 rounded-2xl font-medium hover:bg-[#265239] transition-colors duration-200 flex-1 cursor-pointer"
           onClick={handleEdit}
         >
-          Editar
+          {t("targetForm2.edit")}
         </button>
         <button 
           className="bg-gray-200 text-gray-800 px-4 py-2 rounded-2xl font-medium hover:bg-gray-300 transition-colors duration-200 flex-1 cursor-pointer"
           onClick={handlePreview}
         >
-          Vista previa
+          {t("targetForm2.preview")}
         </button>
       </div>
     </div>

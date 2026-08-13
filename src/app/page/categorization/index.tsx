@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "@/app/components/forms/form-base.module.css";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Note {
   id: string;
@@ -45,6 +46,7 @@ interface SavedCategorizationResponse {
 }
 
 function ZoomOutCategorizationContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -368,7 +370,7 @@ function ZoomOutCategorizationContent() {
     }
   };
 
-  if (loading) return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
+  if (loading) return <p className="text-center mt-10 text-gray-500">{t("categorization.loadingData")}</p>;
 
   const visibleCategories =
   categories.length > 0 ? categories : defaultCategories;
@@ -395,11 +397,11 @@ function ZoomOutCategorizationContent() {
       });
 
       if (!res.ok) throw new Error("Error saving data");
-      setFeedbackModal("Datos guardados exitosamente ✅");
+      setFeedbackModal(t("categorization.saveSuccess"));
       setNextPathAfterModal(categorizationNextPath);
     } catch (err) {
       console.error(err);
-      setFeedbackModal("Error saving data ❌");
+      setFeedbackModal(t("categorization.saveError"));
       setNextPathAfterModal(null);
     } finally {
       setIsSaving(false);
@@ -419,7 +421,7 @@ function ZoomOutCategorizationContent() {
   return (
     <div className="p-6 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
-        Zoom Out: Categorización
+        {t("categorization.pageTitle")}
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -463,9 +465,9 @@ function ZoomOutCategorizationContent() {
           <div className="flex flex-col gap-6">
             {(["opportunities", "needs", "problems"] as const).map((key) => {
               const labels: Record<string, string> = {
-                opportunities: "Oportunidades",
-                needs: "Necesidades",
-                problems: "Problemas",
+                opportunities: t("categorization.opportunities"),
+                needs: t("categorization.needs"),
+                problems: t("categorization.problems"),
               };
               return (
                 <div key={key}>
@@ -516,7 +518,7 @@ function ZoomOutCategorizationContent() {
           disabled={isSaving}
           className="w-full max-w-[300px]"
         >
-          Atrás
+          {t("common.back")}
         </Button>
         <Button
           variant="default"
@@ -531,10 +533,10 @@ function ZoomOutCategorizationContent() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Guardando...
+              {t("common.saving")}
             </>
           ) : (
-            "Siguiente"
+            t("common.next")
           )}
         </Button>
       </div>
@@ -547,7 +549,7 @@ function ZoomOutCategorizationContent() {
               className={styles.confirmButton}
               onClick={handleCloseModal}
             >
-              OK
+              {t("common.ok")}
             </button>
           </div>
         </div>
@@ -585,9 +587,10 @@ const defaultCategories: Category[] = [
 
 
 export default function ZoomOutCategorization() {
+  const { t } = useLanguage();
 
   return (
-    <Suspense fallback={<p className="text-center mt-10 text-gray-500">Loading data...</p>}>
+    <Suspense fallback={<p className="text-center mt-10 text-gray-500">{t("common.loading")}</p>}>
       <ZoomOutCategorizationContent />
     </Suspense>
   );

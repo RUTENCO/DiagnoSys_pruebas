@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import styles from "./form-base.module.css";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Item {
     id: number;
@@ -41,6 +42,7 @@ interface FormBaseProps {
 }
 
 const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
+    const { t } = useLanguage();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,10 +119,10 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                 // Map API data to the component’s structure
                 const mappedCategories: Category[] = data.categories?.map((cat) => ({
                     id: cat.id,
-                    title: cat.name || "Categoría sin título",
+                    title: cat.name || t("form.untitledCategory"),
                     items: cat.items?.map((item) => ({
                         id: item.id,
-                        name: item.name || "Ítem sin nombre",
+                        name: item.name || t("form.unnamedItem"),
                         selected: false,
                         rating: undefined,
                     })) || [],
@@ -236,7 +238,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             );
 
             if (categoriesWithSelectedItems.length === 0) {
-                setErrorModal("Por favor selecciona y califica al menos un item en cualquier categoría.");
+                setErrorModal(t("form.selectAtLeastOneItem"));
                 setNextPathAfterModal(null);
                 return;
             }
@@ -247,7 +249,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             );
 
             if (itemsWithoutRating.length > 0) {
-                setErrorModal("Por favor asigna una calificación a todos los items seleccionados.");
+                setErrorModal(t("form.rateAllSelectedItems"));
                 setNextPathAfterModal(null);
                 return;
             }
@@ -318,7 +320,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             setNextPathAfterModal(returnPath);
         } catch (err) {
             console.error("Error submitting form:", err);
-            setErrorModal(err instanceof Error ? err.message : "Error al enviar la evaluación. Por favor intenta de nuevo.");
+            setErrorModal(err instanceof Error ? err.message : t("form.submitError"));
             setNextPathAfterModal(null);
         } finally {
             setIsSubmitting(false);
@@ -330,7 +332,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
         return (
             <div className={`${styles.container} ${styles.loadingWrapper}`}>
                 <div className={styles.loadingText}>
-                    <h3>Cargando formulario, por favor espere...</h3>
+                    <h3>{t("form.loading")}</h3>
                 </div>
                 <div className={styles.skeletonHeader}>
                     <div className={styles.skeletonTitle}></div>
@@ -352,7 +354,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
     if (error) {
         return (
             <div className={styles.container}>
-                <p>Error al cargar el formulario: {error}</p>
+                <p>{t("form.loadError")} {error}</p>
             </div>
         );
     }
@@ -360,7 +362,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
     if (!formData) {
         return (
             <div className={styles.container}>
-                <p>Formulario no encontrado</p>
+                <p>{t("form.notFound")}</p>
             </div>
         );
     }
@@ -386,7 +388,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                     ></div>
                 </div>
                 <span className={styles.progressText}>
-                    {completedCategories}/{categories.length} categorías completadas
+                    {completedCategories}/{categories.length} {t("form.categoriesCompleted")}
                 </span>
             </div>
 
@@ -398,7 +400,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                             className={styles.addItemButton}
                             onClick={() => openModal(cat.id)}
                         >
-                            + Agregar ítem
+                            {t("form.addItem")}
                         </button>
                     </div>
                     <div className={styles.categorySeparator}></div>
@@ -429,7 +431,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                                 <button
                                     className={styles.deleteButton}
                                     onClick={() => handleDeleteItem(cat.id, item.id)}
-                                    title="Eliminar item"
+                                    title={t("form.deleteItem")}
                                 >
                                     🗑
                                 </button>
@@ -441,7 +443,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
 
             <div className={styles.buttonGroup}>
                 <button className={styles.backButton} onClick={() => router.back()} disabled={isSubmitting}>
-                    Atrás
+                    {t("form.back")}
                 </button>
                 <button className={styles.submitButton} onClick={handleSubmit} disabled={isSubmitting}>
                     {isSubmitting ? (
@@ -453,7 +455,7 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
                             Enviando...
                         </>
                     ) : (
-                        "Enviar evaluación"
+                        t("form.submitEvaluation")
                     )}
                 </button> 
                 
@@ -463,23 +465,23 @@ const FormBase: React.FC<FormBaseProps> = ({ formId }) => {
             {showModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
-                        <h4>Agregar nuevo item</h4>
+                        <h4>{t("form.addNewItem")}</h4>
                         <input
                             type="text"
                             value={newItemName}
-                            placeholder="Ingresa el nombre del nuevo item"
+                            placeholder={t("form.newItemPlaceholder")}
                             onChange={(e) => setNewItemName(e.target.value)}
                             className={styles.modalInput}
                         />
                         <div className={styles.modalActions}>
                             <button onClick={handleAddItem} className={styles.confirmButton}>
-                                Agregar
+                                {t("form.add")}
                             </button>
                             <button
                                 onClick={() => setShowModal(false)}
                                 className={styles.cancelButton}
                             >
-                                Cancelar
+                                {t("common.cancel")}
                             </button>
                         </div>
                     </div>

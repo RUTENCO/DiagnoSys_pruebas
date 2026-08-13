@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import styles from "./preview-forms.module.css";
 import { CheckCircle2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Category {
     id: string;
@@ -53,6 +54,7 @@ interface PreviewFormsProps {
 const STEPS = ["zoom-in", "zoom-out", "categorization", "prioritization", "reports"];
 
 export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps) {
+    const { t } = useLanguage();
     const [forms, setForms] = useState<FormCardProps[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -252,9 +254,9 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
     if (loading) {
         return (
             <div className={styles.container}>
-                <h2 className={styles.title}>Formularios de Evaluación</h2>
+                <h2 className={styles.title}>{t("previewForms.title")}</h2>
                 <p className={styles.subtitle}>
-                    Cargando formularios, por favor espere...
+                    {t("previewForms.loading")}
                 </p>
                 <div className={styles.grid}>
                     {[...Array(4)].map((_, i) => (
@@ -279,7 +281,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
         return (
             <div className={styles.container}>
                 <div className={styles.error}>
-                    <p>Error: {error}</p>
+                    <p>{t("previewForms.error")} {error}</p>
                 </div>
             </div>
         );
@@ -287,7 +289,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
 
     return (
         <div className={styles.container}>
-            <h2 className={styles.title}>Formularios de Evaluación</h2>
+            <h2 className={styles.title}>{t("previewForms.title")}</h2>
             <p className={styles.subtitle}>
                 Completa los formularios para evaluar diferentes aspectos organizacionales
             </p>
@@ -316,10 +318,10 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
 
                         <div className={styles.metaFloatingRow}>
                             <p className={styles.meta}>
-                                {form.categories} categorías • {form.items} ítems
+                                {form.categories} {t("previewForms.categories")} • {form.items} {t("previewForms.items")}
                             </p>
                             {isCompleted && (
-                                <div className={styles.completionMarker} title="Formulario completado">
+                                <div className={styles.completionMarker} title={t("previewForms.completedTitle")}>
                                     <CheckCircle2 size={20} />
                                 </div>
                             )}
@@ -329,7 +331,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                             className={`${styles.button} ${isCompleted ? styles.completedButton : ""}`}
                             onClick={() => handleStartEvaluation(form.id)}
                         >
-                            {isCompleted ? "Evaluación completada" : "Iniciar Evaluación"}
+                            {isCompleted ? t("previewForms.evaluationCompleted") : t("previewForms.startEvaluation")}
                         </button>
                     </div>
                 )})}
@@ -340,7 +342,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                     size="lg"
                     onClick={handleBack}
                 >
-                    Atrás
+                    {t("form.back")}
                 </Button>
                 <Button
                     variant="default"
@@ -348,7 +350,7 @@ export default function PreviewForms({ moduleName, moduleId }: PreviewFormsProps
                     onClick={handleNext}
                     disabled={!allFormsCompleted}
                 >
-                    Siguiente
+                    {t("previewForms.next")}
                 </Button>
             </div>
         </div>

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import styles from "./forgot-password.module.css";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const forgotPasswordSchema = z.object({
     email: z.string().email("Por favor ingresa un correo valido"),
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function ForgotPasswordForm({ onSwitch }: Props) {
+    const { t } = useLanguage();
     const [error, setError] = useState("");
     const [message, setMessage] = useState("");
     const [loading, setLoading] = useState(false);
@@ -35,7 +37,7 @@ export default function ForgotPasswordForm({ onSwitch }: Props) {
                 body: JSON.stringify(data),
             });
             const response = await res.json();
-            if (res.ok) setMessage("Si este correo existe, te enviamos las instrucciones para restablecerlo");
+            if (res.ok) setMessage(t("forgot.sent"));
             else setError(response.error || "Algo salio mal");
         } catch {
             setError("Error al enviar el enlace de restablecimiento, por favor intenta de nuevo.");
@@ -46,25 +48,25 @@ export default function ForgotPasswordForm({ onSwitch }: Props) {
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-            <h2 className={styles.title}>Olvidaste tu contrasena?</h2>
-            <p className={styles.subtitle}>Ingresa tu correo y te enviaremos un enlace para restablecerla</p>
+            <h2 className={styles.title}>{t("forgot.title")}</h2>
+            <p className={styles.subtitle}>{t("forgot.subtitle")}</p>
 
             <div className={styles.inputGroup}>
                 <input id="email" type="email" placeholder=" " className={styles.input} aria-invalid={!!errors.email} {...register("email")} />
-                <label htmlFor="email" className={styles.label}>Correo electronico</label>
+                <label htmlFor="email" className={styles.label}>{t("forgot.email")}</label>
                 {errors.email && <p className={styles.error}>{errors.email.message}</p>}
             </div>
 
             <button type="submit" disabled={loading} className={styles.button} aria-busy={loading}>
-                {loading ? "Enviando..." : "Enviar enlace de restablecimiento"}
+                {loading ? t("forgot.sending") : t("forgot.sendLink")}
             </button>
 
             {error && <p className={styles.error}>{error}</p>}
             {message && <p className={styles.success}>{message}</p>}
 
             <p className={styles.footer}>
-                La recordaste?{" "}
-                <button type="button" onClick={onSwitch} className={styles.link}>Volver al inicio de sesion</button>
+                {t("forgot.remembered")}{" "}
+                <button type="button" onClick={onSwitch} className={styles.link}>{t("forgot.backToLogin")}</button>
             </p>
         </form>
     );

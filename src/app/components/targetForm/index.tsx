@@ -1,7 +1,9 @@
 import React from 'react'
 import { ClipboardList, Grid, Check } from 'lucide-react';
+import { useLanguage } from '@/lib/i18n/LanguageProvider';
 
 const index = ({ formsCount = 0, categoriesCount = 0, itemsCount = 0 }) => {
+    const { t } = useLanguage();
     return (
         <div className='flex flex-wrap justify-around gap-4 rounded-lg p-6'>
             <div className='flex flex-row space-x-3 rounded-lg border border-gray-300 p-4 shadow-sm w-48 items-center hover:shadow-lg hover:scale-105 transition-transform duration-200 green-interactive'>
@@ -10,7 +12,7 @@ const index = ({ formsCount = 0, categoriesCount = 0, itemsCount = 0 }) => {
                 </div>
                 <div >
                     <h1 className='text-3xl font-bold'>{formsCount}</h1>
-                    <p className='text-gray-600'>Formularios</p>
+                    <p className='text-gray-600'>{t("targetForm.forms")}</p>
                 </div>
             </div>
             <div className='flex flex-row space-x-3 rounded-lg border border-gray-300 p-4 shadow-sm w-48 items-center hover:shadow-lg hover:scale-105 transition-transform duration-200 green-interactive'>
@@ -19,7 +21,7 @@ const index = ({ formsCount = 0, categoriesCount = 0, itemsCount = 0 }) => {
                 </div>
                 <div >
                     <h1 className='text-3xl font-bold'>{categoriesCount}</h1>
-                    <p className='text-gray-600'>Categorías</p>
+                    <p className='text-gray-600'>{t("targetForm.categories")}</p>
                 </div>
             </div>
             <div className='flex flex-row space-x-3 rounded-lg border border-gray-300 p-4 shadow-sm w-48 items-center hover:shadow-lg hover:scale-105 transition-transform duration-200 green-interactive'>
@@ -28,7 +30,7 @@ const index = ({ formsCount = 0, categoriesCount = 0, itemsCount = 0 }) => {
                 </div>
                 <div >
                     <h1 className='text-3xl font-bold'>{itemsCount}</h1>
-                    <p className='text-gray-600'>Ítems</p>
+                    <p className='text-gray-600'>{t("targetForm.items")}</p>
                 </div>
             </div>
         </div >

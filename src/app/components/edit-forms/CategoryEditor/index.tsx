@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import ItemEditor from "../ItemEditor";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function CategoryEditor({
   categories,
@@ -15,15 +16,16 @@ export default function CategoryEditor({
   onCategoryChange: (index: number, field: string, value: string) => void;
   onItemChange: (categoryIndex: number, items: string[]) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="mt-8">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xl font-bold text-[#2E6347]">Categor&#xED;as</h3>
+        <h3 className="text-xl font-bold text-[#2E6347]">{t("editForm.categories")}</h3>
         <button
           onClick={onAddCategory}
           className="px-4 py-2 bg-[#2E6347] text-white rounded-lg hover:bg-[#265239] transition-opacity cursor-pointer"
         >
-          + Agregar categor&#xED;a
+          {t("editForm.addCategory")}
         </button>
       </div>
 
@@ -36,7 +38,7 @@ export default function CategoryEditor({
             <input
               type="text"
               value={cat.name}
-              placeholder="Nombre de la categoría"
+              placeholder={t("editForm.categoryNamePlaceholder")}
               onChange={(e) =>
                 onCategoryChange(index, "name", e.target.value)
               }
@@ -45,7 +47,7 @@ export default function CategoryEditor({
             <button
               onClick={() => onDeleteCategory(index)}
               className="bg-transparent border-none text-red-600 cursor-pointer transition-all duration-200 p-2 rounded-md hover:bg-green-100 hover:text-green-800"
-              title="Eliminar categor&#xED;a"
+              title={t("editForm.deleteCategory")}
             >
               🗑
             </button>

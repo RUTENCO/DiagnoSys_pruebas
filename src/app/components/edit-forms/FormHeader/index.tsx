@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function FormHeader({
   title,
@@ -12,14 +13,15 @@ export default function FormHeader({
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div className="p-6 border rounded-xl green-interactive shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-[#2E6347]">Editar formulario</h2>
+      <h2 className="text-2xl font-bold mb-4 text-[#2E6347]">{t("editForm.editTitle")}</h2>
 
       <div className="space-y-4">
         <div>
           <label className="block text-[#2E6347] font-medium mb-1">
-            T&#xED;tulo
+            {t("editForm.titleLabel")}
           </label>
           <input
             type="text"
@@ -31,7 +33,7 @@ export default function FormHeader({
 
         <div>
           <label className="block text-[#2E6347] font-medium mb-1">
-            Descripci&#xF3;n
+            {t("editForm.descriptionLabel")}
           </label>
           <textarea
             className="w-full bg-[#e9f7f3] rounded-lg p-3 focus:border-3 focus:border-black text-black"

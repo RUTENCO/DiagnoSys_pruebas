@@ -8,6 +8,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import styles from "./login.module.css";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 const schema = z.object({
     email: z.string().email({ message: "Dirección de correo inválida" }),
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function LoginForm({ onSwitch, onForgot }: Props) {
+    const { t } = useLanguage();
     const router = useRouter();
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -49,7 +51,7 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
 
         setLoading(false);
 
-        if (res?.error) setError("Correo o contrasena invalidos");
+        if (res?.error) setError(t("login.invalidCredentials"));
         else {
             router.push("/dashboard");
             router.refresh();
@@ -60,20 +62,20 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
         <div className={styles.container}>
             <form onSubmit={handleSubmit(onSubmit)} noValidate className={styles.form}>
                 <div className={styles.header}>
-                    <h2 className={styles.title}>Bienvenido de nuevo</h2>
-                    <p className={styles.subtitle}>Inicia sesion en tu cuenta</p>
+                    <h2 className={styles.title}>{t("login.welcomeBack")}</h2>
+                    <p className={styles.subtitle}>{t("login.subtitle")}</p>
                 </div>
 
                 <div className={styles.inputGroup}>
                     <input id="email" type="email" placeholder=" " {...register("email")} className={styles.input} />
-                    <label htmlFor="email" className={styles.label}>Correo electronico</label>
+                    <label htmlFor="email" className={styles.label}>{t("login.email")}</label>
                     {errors.email && <p className={styles.error}>{errors.email.message}</p>}
                 </div>
 
                 <div className={`${styles.inputGroup} ${styles.passwordWrapper}`}>
                     <input id="password" type={showPassword ? "text" : "password"} placeholder=" " {...register("password")} className={styles.input} />
                     <label htmlFor="password" className={styles.label}>
-                        Contrasena
+                        {t("login.password")}
                     </label>
 
                     <button
@@ -92,23 +94,23 @@ export default function LoginForm({ onSwitch, onForgot }: Props) {
                 <div className={styles.optionsRow}>
                     <label className={styles.rememberMe}>
                         <input type="checkbox" {...register("rememberMe")} />
-                        Recordarme
+                        {t("login.rememberMe")}
                     </label>
                     <button type="button" onClick={onForgot} className={styles.link}>
-                        Olvidaste tu contrasena?
+                        {t("login.forgotPassword")}
                     </button>
                 </div>
 
                 {error && <p className={styles.error}>{error}</p>}
 
                 <button type="submit" disabled={loading} className={styles.button}>
-                    {loading ? "Iniciando sesion..." : "Iniciar sesion"}
+                    {loading ? t("login.signingIn") : t("login.signIn")}
                 </button>
 
                 <p className={styles.footerText}>
-                    No tienes una cuenta?{" "}
+                    {t("login.noAccount")}{" "}
                     <button type="button" onClick={onSwitch} className={styles.link}>
-                        Registrate ahora
+                        {t("login.registerNow")}
                     </button>
                 </p>
             </form>

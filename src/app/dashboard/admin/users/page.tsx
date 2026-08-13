@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, SessionContextValue } from "next-auth/react";
 import styles from "./dashboard.module.css";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type User = {
   id: number;
@@ -17,6 +18,7 @@ type User = {
 };
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   const {status }: SessionContextValue = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function DashboardPage() {
   if (status === "loading") {
     return (
       <main className={styles.container}>
-        <div className={styles.loading}>Cargando...</div>
+        <div className={styles.loading}>{t("common.loading")}</div>
       </main>
     );
   }
@@ -48,7 +50,7 @@ export default function DashboardPage() {
   return (
     <main className={styles.container}>
       <section className={styles.section}>
-        <h1 className="text-4xl text-primary pb-7">Usuarios Registrados</h1>
+        <h1 className="text-4xl text-primary pb-7">{t("users.title")}</h1>
 
         {loading ? (
           <ul className={styles.list}>
@@ -64,12 +66,12 @@ export default function DashboardPage() {
           <ul className={styles.list}>
             {users.map((u) => (
               <li key={u.id} className={styles.card}>
-                <p><strong>ID:</strong> {u.id}</p>
-                <p><strong>Nombre:</strong> {u.name}</p>
-                <p><strong>Correo:</strong> {u.email}</p>
-                <p><strong>Rol:</strong> {u.role?.displayName || "Sin rol"}</p>
-                <p><strong>Creado:</strong> {new Date(u.createdAt).toLocaleString()}</p>
-                <p><strong>Actualizado:</strong> {new Date(u.updatedAt).toLocaleString()}</p>
+                <p><strong>{t("users.id")}</strong> {u.id}</p>
+                <p><strong>{t("users.name")}</strong> {u.name}</p>
+                <p><strong>{t("users.email")}</strong> {u.email}</p>
+                <p><strong>{t("users.role")}</strong> {u.role?.displayName || t("users.noRole")}</p>
+                <p><strong>{t("users.created")}</strong> {new Date(u.createdAt).toLocaleString()}</p>
+                <p><strong>{t("users.updated")}</strong> {new Date(u.updatedAt).toLocaleString()}</p>
               </li>
             ))}
           </ul>

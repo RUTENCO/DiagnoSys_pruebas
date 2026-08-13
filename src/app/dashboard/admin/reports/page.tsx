@@ -6,6 +6,7 @@ import Link from "next/link";
 import { TrendingUp, BarChart3, Radar} from "lucide-react";
 import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-radar-chart";
 import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface CategoryData {
     name: string;
@@ -43,6 +44,7 @@ interface ApiResponse {
 }
 
 export default function ReportsPage() {
+    const { t } = useLanguage();
     const { status } = useSession();
     const [loading, setLoading] = useState(true);
     const [zoomInForms, setZoomInForms] = useState<FormData[]>([]);
@@ -243,17 +245,17 @@ export default function ReportsPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347] mb-2">
-                        Reportes de Evaluación Digital
+                        {t("reportsPage.title")}
                     </h1>
                     <p className="text-black">
-                        Visualiza tus últimas evaluaciones personalizadas organizadas por tipo de evaluación
+                        {t("reportsPage.subtitle")}
                     </p>
                     <div className="mt-4">
                         <Link
                             href="/dashboard/admin/reports/configuration"
                             className="inline-flex items-center rounded-md bg-[#2E6347] px-4 py-2 text-sm font-medium text-white hover:bg-[#24533b]"
                         >
-                            Configurar criterios y formato del informe
+                            {t("reportsPage.configureLink")}
                         </Link>
                     </div>
                 </div>
@@ -265,7 +267,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom In</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("reportsPage.zoomInForms")}</p>
                                     <p className="text-2xl font-bold">{zoomInForms.length}</p>
                                 </div>
                             </div>
@@ -277,7 +279,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom Out</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("reportsPage.zoomOutForms")}</p>
                                     <p className="text-2xl font-bold">{zoomOutForms.length}</p>
                                 </div>
                             </div>
@@ -289,7 +291,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-blue-500" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Total de Formularios</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("reportsPage.totalForms")}</p>
                                     <p className="text-2xl font-bold">{zoomInForms.length + zoomOutForms.length}</p>
                                 </div>
                             </div>
@@ -302,14 +304,14 @@ export default function ReportsPage() {
                     <div className="mb-12">
                         <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                             <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom In - Evaluación de Habilidades
+                            {t("reportsPage.zoomInSection")}
                         </h2>
                         <div className="flex flex-col gap-6">
                             {zoomInForms.map((form) => (
                                 <div key={form.id} className="min-h-[400px] flex">
                                     <FormRadarChart
                                         title={form.name}
-                                        description={`User: ${form.user.name} | Organization: ${form.user.organization} | Avg Score: ${form.stats.avgScore}/5.0`}
+                                        description={`${t("reportsPage.userLabel")}: ${form.user.name} | ${t("reportsPage.organizationLabel")}: ${form.user.organization} | ${t("reportsPage.avgScoreLabel")}: ${form.stats.avgScore}/5.0`}
                                         data={form.categoryData}
                                         className="w-full"
                                     />
@@ -324,14 +326,14 @@ export default function ReportsPage() {
                     <div className="mb-12">
                         <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                             <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                            Zoom Out - Evaluación de Capacidades
+                            {t("reportsPage.zoomOutSection")}
                         </h2>
                         <div className="flex flex-col gap-6">
                             {zoomOutForms.map((form) => (
                                 <div key={form.id} className="min-h-[400px] flex">
                                     <FormRadarChart
                                         title={form.name}
-                                        description={`User: ${form.user.name} | Organization: ${form.user.organization} | Avg Score: ${form.stats.avgScore}/5.0`}
+                                        description={`${t("reportsPage.userLabel")}: ${form.user.name} | ${t("reportsPage.organizationLabel")}: ${form.user.organization} | ${t("reportsPage.avgScoreLabel")}: ${form.stats.avgScore}/5.0`}
                                         data={form.categoryData}
                                         className="w-full"
                                     />
@@ -347,8 +349,8 @@ export default function ReportsPage() {
                         <CardContent className="py-12 text-center">
                             <div className="text-[#2E6347]">
                                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50 text-[#2E6347]" />
-                                <h3 className="text-lg font-medium mb-2">Sin Reportes Disponibles</h3>
-                                <p>Completa algunas evaluaciones de formularios para ver tus gráficas aquí</p>
+                                <h3 className="text-lg font-medium mb-2">{t("reportsPage.noReportsTitle")}</h3>
+                                <p>{t("reportsPage.noReportsDesc")}</p>
                             </div>
                         </CardContent>
                     </Card>

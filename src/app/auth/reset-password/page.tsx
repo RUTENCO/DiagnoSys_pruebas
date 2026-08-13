@@ -1,31 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import styles from "./reset-password.module.css";
-
-// Validación de nueva contraseña
-const resetSchema = z
-    .object({
-        password: z
-            .string()
-            .min(8, "La contraseña debe tener al menos 8 caracteres")
-            .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
-            .regex(/[0-9]/, "Debe contener al menos un número"),
-        confirmPassword: z.string(),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-        message: "Las contraseñas no coinciden",
-        path: ["confirmPassword"],
-    });
-
-type ResetForm = z.infer<typeof resetSchema>;
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function ResetPasswordPage() {
+    const { t } = useLanguage();
     const router = useRouter();
     // ya no usamos useSearchParams
     const [token, setToken] = useState<string | null>(null);
@@ -41,6 +26,27 @@ export default function ResetPasswordPage() {
         const q = new URLSearchParams(window.location.search).get("token");
         setToken(q);
     }, []); // vacio: solo al montar en cliente
+
+    // Validación de nueva contraseña
+    const resetSchema = useMemo(
+        () =>
+            z
+                .object({
+                    password: z
+                        .string()
+                        .min(8, t("reset.passwordMinLength"))
+                        .regex(/[A-Z]/, t("reset.passwordUppercase"))
+                        .regex(/[0-9]/, t("reset.passwordNumber")),
+                    confirmPassword: z.string(),
+                })
+                .refine((data) => data.password === data.confirmPassword, {
+                    message: t("reset.passwordsDontMatch"),
+                    path: ["confirmPassword"],
+                }),
+        [t]
+    );
+
+    type ResetForm = z.infer<typeof resetSchema>;
 
     const {
         register,
@@ -64,13 +70,13 @@ export default function ResetPasswordPage() {
 
             const response = await res.json();
             if (res.ok) {
-                setMessage("¡Contraseña restablecida exitosamente! Redirigiendo al inicio de sesión...");
+                setMessage(t("reset.success"));
                 setTimeout(() => router.push("/auth/card"), 3000);
             } else {
-                setError(response.error || "Algo salió mal");
+                setError(response.error || t("reset.genericError"));
             }
         } catch {
-            setError("Error al restablecer la contraseña. Intenta de nuevo.");
+            setError(t("reset.requestError"));
         } finally {
             setLoading(false);
         }
@@ -78,20 +84,20 @@ export default function ResetPasswordPage() {
 
     // Mientras aún no tenemos token (render del cliente)
     if (token === null) {
-        return <p className={styles.error}>Cargando...</p>;
+        return <p className={styles.error}>{t("reset.loading")}</p>;
     }
 
     // Token inválido o ausente
     if (!token) {
-        return <p className={styles.error}>Enlace de restablecimiento inválido</p>;
+        return <p className={styles.error}>{t("reset.invalidLink")}</p>;
     }
 
     // Token válido
     return (
         <div className={styles.container}>
             <form onSubmit={handleSubmit(onSubmit)} className={styles.form}>
-                <h2 className={styles.title}>Restablecer contraseña</h2>
-                <p className={styles.subtitle}>Ingresa tu nueva contraseña a continuación</p>
+                <h2 className={styles.title}>{t("reset.title")}</h2>
+                <p className={styles.subtitle}>{t("reset.subtitle")}</p>
 
                 <div className={`${styles.inputGroup} ${styles.passwordWrapper}`}>
                     <input
@@ -103,7 +109,7 @@ export default function ResetPasswordPage() {
                         disabled={loading || !!message}
                     />
                     <label htmlFor="password" className={styles.label}>
-                        Nueva contraseña
+                        {t("reset.newPassword")}
                     </label>
 
                     <button
@@ -111,7 +117,7 @@ export default function ResetPasswordPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         className={styles.eyeButton}
                         disabled={loading || !!message}
-                        aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        aria-label={showPassword ? t("reset.hidePassword") : t("reset.showPassword")}
                     >
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -131,7 +137,7 @@ export default function ResetPasswordPage() {
                         disabled={loading || !!message}
                     />
                     <label htmlFor="confirmPassword" className={styles.label}>
-                        Confirmar contraseña
+                        {t("reset.confirmPassword")}
                     </label>
 
                     <button
@@ -139,7 +145,7 @@ export default function ResetPasswordPage() {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className={styles.eyeButton}
                         disabled={loading || !!message}
-                        aria-label={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        aria-label={showConfirmPassword ? t("reset.hidePassword") : t("reset.showPassword")}
                     >
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
@@ -154,7 +160,7 @@ export default function ResetPasswordPage() {
                     className={styles.button}
                     disabled={loading || !!message} // Deshabilitar si hay mensaje de éxito
                 >
-                    {loading ? "Restableciendo..." : "Restablecer contraseña"}
+                    {loading ? t("reset.resetting") : t("reset.resetPassword")}
                 </button>
 
                 {error && <p className={styles.error}>{error}</p>}

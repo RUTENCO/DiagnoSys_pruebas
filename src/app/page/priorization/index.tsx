@@ -11,6 +11,7 @@ import {
 } from "@hello-pangea/dnd";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styles from "@/app/components/forms/form-base.module.css";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface Note {
   id: string;
@@ -48,6 +49,7 @@ interface SavedPrioritizationResponse {
 }
 
 function PriorityQuadrantsContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
@@ -388,7 +390,7 @@ function PriorityQuadrantsContent() {
   };
 
   if (loading)
-    return <p className="text-center mt-10 text-gray-500">Cargando datos...</p>;
+    return <p className="text-center mt-10 text-gray-500">{t("priorization.loadingData")}</p>;
 
   const allNotes = categories.flatMap((c) => c.notes);
   const allDestNotes = [
@@ -417,11 +419,11 @@ function PriorityQuadrantsContent() {
       });
 
       if (!res.ok) throw new Error("Error saving data");
-      setFeedbackModal("Datos guardados exitosamente ✅");
+      setFeedbackModal(t("priorization.saveSuccess"));
       setNextPathAfterModal(reportsPath);
     } catch (err) {
       console.error(err);
-      setFeedbackModal("Error saving data ❌");
+      setFeedbackModal(t("priorization.saveError"));
       setNextPathAfterModal(null);
     } finally {
       setIsSaving(false);
@@ -441,7 +443,7 @@ function PriorityQuadrantsContent() {
   return (
     <div className="p-6 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-[#2E6347]">
-        Zoom Out: Matriz de Priorizaci&#xF3;n
+        {t("priorization.pageTitle")}
       </h1>
 
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -520,25 +522,25 @@ function PriorityQuadrantsContent() {
 
           {/* Etiquetas de ejes */}
           <div className="absolute left-0 top-1/4 -translate-y-1/2 w-9 text-right text-sm font-semibold leading-4 text-green-800 sm:-left-2 sm:w-16 sm:text-xl sm:leading-6">
-            Alto
+            {t("priorization.high")}
             <br />
-            Impacto
+            {t("priorization.impact")}
           </div>
           <div className="absolute left-0 top-[70%] -translate-y-1/2 w-8 text-right text-sm font-semibold leading-4 text-green-800 sm:-left-2 sm:top-[68%] sm:w-16 sm:text-xl sm:leading-6">
-            Bajo
+            {t("priorization.low")}
             <br />
-            Impacto
+            {t("priorization.impact")}
           </div>
           <div className="absolute bottom-0 left-10 right-2 grid grid-cols-2 sm:left-20">
             <div className="text-center text-lg font-semibold leading-5 text-green-800 sm:text-xl sm:leading-6">
-              Baja
+              {t("priorization.lowUrgencyLabel")}
               <br />
-              Urgencia
+              {t("priorization.urgency")}
             </div>
             <div className="text-center text-lg font-semibold leading-5 text-green-800 sm:text-xl sm:leading-6">
-              Alta
+              {t("priorization.highUrgencyLabel")}
               <br />
-              Urgencia
+              {t("priorization.urgency")}
             </div>
           </div>
 
@@ -548,22 +550,22 @@ function PriorityQuadrantsContent() {
               [
                 {
                   id: "q2",
-                  title: "Prioridad media",
+                  title: t("priorization.mediumPriority"),
                   border: "border-yellow-200",
                 },
                 {
                   id: "q1",
-                  title: "Alta prioridad",
+                  title: t("priorization.highPriorityTitle"),
                   border: "border-emerald-600",
                 },
                 {
                   id: "q3",
-                  title: "Baja prioridad",
+                  title: t("priorization.lowPriorityTitle"),
                   border: "border-red-400",
                 },
                 {
                   id: "q4",
-                  title: "Prioridad media",
+                  title: t("priorization.mediumPriority"),
                   border: "border-yellow-200",
                 },
               ] as const
@@ -627,7 +629,7 @@ function PriorityQuadrantsContent() {
           disabled={isSaving}
           className="w-full max-w-[300px]"
         >
-          Atrás
+          {t("common.back")}
         </Button>
         <Button
           variant="default"
@@ -642,10 +644,10 @@ function PriorityQuadrantsContent() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Guardando...
+              {t("common.saving")}
             </>
           ) : (
-            "Siguiente"
+            t("common.next")
           )}
         </Button>
       </div>
@@ -659,7 +661,7 @@ function PriorityQuadrantsContent() {
               className={styles.confirmButton}
               onClick={handleCloseModal}
             >
-              OK
+              {t("common.ok")}
             </button>
           </div>
         </div>
@@ -668,9 +670,14 @@ function PriorityQuadrantsContent() {
   );
 }
 
+function PriorizationLoadingFallback() {
+  const { t } = useLanguage();
+  return <p className="text-center mt-10 text-gray-500">{t("priorization.loadingData")}</p>;
+}
+
 export default function PriorityQuadrants() {
   return (
-    <Suspense fallback={<p className="text-center mt-10 text-gray-500">Loading data...</p>}>
+    <Suspense fallback={<PriorizationLoadingFallback />}>
       <PriorityQuadrantsContent />
     </Suspense>
   );

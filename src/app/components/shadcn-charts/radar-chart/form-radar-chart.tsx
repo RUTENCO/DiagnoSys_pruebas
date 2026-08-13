@@ -14,6 +14,7 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from "@/app/components/shadcn-charts/chart"
+import { useLanguage } from "@/lib/i18n/LanguageProvider"
 
 interface CategoryData {
     name: string;
@@ -100,6 +101,7 @@ function RadarChartSkeleton({ title, description, className }: { title: string, 
 }
 
 export function FormRadarChart({ title, description, data = [], className, isLoading = false }: FormRadarChartProps & { isLoading?: boolean }) {
+    const { t } = useLanguage();
     // Show skeleton while loading
     if (isLoading) {
         return <RadarChartSkeleton title={title} description={description} className={className} />;
@@ -119,7 +121,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                 </CardHeader>
                 <CardContent className="pb-0 bg-white">
                     <div className="mx-auto aspect-square max-h-[300px] flex items-center justify-center">
-                        <p className="text-gray-500">Sin datos disponibles</p>
+                        <p className="text-gray-500">{t("radar.noData")}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -171,11 +173,11 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
 
     const chartConfig = {
         score: {
-            label: "Puntaje",
+            label: t("radar.score"),
             color: "#3B82F6",
         },
         maxScore: {
-            label: "Puntaje máximo",
+            label: t("radar.maxScore"),
             color: "#6B7280",
         },
     } satisfies ChartConfig;
@@ -313,7 +315,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'score') {
                                                 return [
                                                     <div key="score" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-black font-medium">Puntaje:</span>
+                                                        <span className="text-black font-medium">{t("radar.score")}:</span>
                                                         <span className="text-black font-bold ml-3">{value}</span>
                                                     </div>,
                                                     ''
@@ -322,7 +324,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'maxScore') {
                                                 return [
                                                     <div key="maxScore" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-black font-medium">Puntaje máximo:</span>
+                                                        <span className="text-black font-medium">{t("radar.maxScore")}:</span>
                                                         <span className="text-black font-bold ml-3">{value}</span>
                                                     </div>,
                                                     ''
@@ -331,7 +333,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                                             if (name === 'percentage') {
                                                 return [
                                                     <div key="percentage" className="flex justify-between items-center w-full min-w-[120px]">
-                                                        <span className="text-[#2E6347] font-medium">Porcentaje:</span>
+                                                        <span className="text-[#2E6347] font-medium">{t("radar.percentage")}:</span>
                                                         <span className="text-emerald-600 font-bold ml-3">{value}%</span>
                                                     </div>,
                                                     ''
@@ -394,7 +396,7 @@ export function FormRadarChart({ title, description, data = [], className, isLoa
                 
                 {/* Estadísticas detalladas para todas las gráficas */}
                 <div className="mt-6 pt-4 border-t border-gray-200">
-                    <h4 className="text-sm font-bold text-[#2E6347] mb-4">Detalle por categoría</h4>
+                    <h4 className="text-sm font-bold text-[#2E6347] mb-4">{t("radar.categoryDetail")}</h4>
                     <div className={`grid gap-3 ${
                         data.length <= 3 ? 'grid-cols-1' : 
                         data.length <= 6 ? 'grid-cols-1 md:grid-cols-2' : 
@@ -445,6 +447,7 @@ interface ModuleRadarChartProps {
 }
 
 export function ModuleRadarChart({ title, description, modules, className }: ModuleRadarChartProps) {
+    const { t } = useLanguage();
     const chartData = modules.map(module => ({
         module: module.name,
         score: module.avgScore,
@@ -487,14 +490,14 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
                                     className="green-interactive border border-green-200 shadow-lg rounded-lg p-3"
                                     labelFormatter={(label) => (
                                         <span className="text-sm font-semibold text-[#2E6347]">
-                                            Módulo: {label}
+                                            {t("radar.module")}: {label}
                                         </span>
                                     )}
                                     formatter={(value, name) => {
                                         if (name === 'score') {
                                             return [
                                                 <div key="score" className="flex justify-between items-center w-full min-w-[120px]">
-                                                    <span className="text-gray-700 font-medium">Puntaje prom.:</span>
+                                                    <span className="text-gray-700 font-medium">{t("radar.avgScore")}:</span>
                                                     <span className="text-[#2E6347] font-bold ml-3">{value}</span>
                                                 </div>,
                                                 ''
@@ -503,7 +506,7 @@ export function ModuleRadarChart({ title, description, modules, className }: Mod
                                         if (name === 'completion') {
                                             return [
                                                 <div key="completion" className="flex justify-between items-center w-full min-w-[120px]">
-                                                    <span className="text-gray-700 font-medium">Completado:</span>
+                                                    <span className="text-gray-700 font-medium">{t("radar.completed")}:</span>
                                                     <span className="text-emerald-600 font-bold ml-3">{value}%</span>
                                                 </div>,
                                                 ''

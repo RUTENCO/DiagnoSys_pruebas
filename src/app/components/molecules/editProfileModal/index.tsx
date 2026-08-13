@@ -1,5 +1,5 @@
 ﻿"use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Pencil1Icon } from "@radix-ui/react-icons";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type EditProfileModalProps = {
   name: string;
@@ -26,35 +27,17 @@ type EditProfileModalProps = {
   showSectorAndCompanySize?: boolean;
 };
 
-// Zod schema
-const editProfileSchema = z
-  .object({
-    name: z.string().min(1, { message: "El nombre es requerido" }),
-    gmail: z.string().email({ message: "Correo electrónico inválido" }),
-    password: z
-      .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres")
-      .regex(/[A-Z]/, "Debe contener al menos una letra mayúscula")
-      .regex(/[0-9]/, "Debe contener al menos un número")
-      .optional()
-      .or(z.literal("")),
-    confirmPassword: z.string().optional(),
-    sector: z.string().optional(),
-    companySize: z.string().optional(),
-    currentPassword: z.string().optional(), // Nueva entrada para contraseña actual
-    newPassword: z.string().optional(), // Nueva entrada para nueva contraseña
-    confirmNewPassword: z.string().optional(), // Nueva entrada para confirmar nueva contraseña
-  })
-  .refine(
-    (data) => data.password === data.confirmPassword,
-    { path: ["confirmPassword"], message: "Las contraseñas no coinciden" }
-  )
-  .refine(
-    (data) => data.newPassword === data.confirmNewPassword,
-    { path: ["confirmNewPassword"], message: "Las contraseñas no coinciden" }
-  );
-
-type FormData = z.infer<typeof editProfileSchema>;
+type FormData = {
+  name: string;
+  gmail: string;
+  password?: string;
+  confirmPassword?: string;
+  sector?: string;
+  companySize?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmNewPassword?: string;
+};
 
 type Payload = {
   email: string;
@@ -73,6 +56,37 @@ export default function EditProfileModal({
   companySize,
   showSectorAndCompanySize = true,
 }: EditProfileModalProps) {
+  const { t } = useLanguage();
+  const editProfileSchema = useMemo(
+    () =>
+      z
+        .object({
+          name: z.string().min(1, { message: t("profile.nameRequired") }),
+          gmail: z.string().email({ message: t("profile.invalidEmail") }),
+          password: z
+            .string()
+            .min(8, t("profile.passwordMinLength"))
+            .regex(/[A-Z]/, t("profile.passwordUppercase"))
+            .regex(/[0-9]/, t("profile.passwordNumber"))
+            .optional()
+            .or(z.literal("")),
+          confirmPassword: z.string().optional(),
+          sector: z.string().optional(),
+          companySize: z.string().optional(),
+          currentPassword: z.string().optional(), // Entrada para contraseña actual
+          newPassword: z.string().optional(), // Entrada para nueva contraseña
+          confirmNewPassword: z.string().optional(), // Entrada para confirmar nueva contraseña
+        })
+        .refine(
+          (data) => data.password === data.confirmPassword,
+          { path: ["confirmPassword"], message: t("profile.passwordsDontMatch") }
+        )
+        .refine(
+          (data) => data.newPassword === data.confirmNewPassword,
+          { path: ["confirmNewPassword"], message: t("profile.passwordsDontMatch") }
+        ),
+    [t]
+  );
   const [open, setOpen] = useState(false);
   const [successPopup, setSuccessPopup] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -137,13 +151,13 @@ export default function EditProfileModal({
     // Comprobamos si se desea cambiar la contraseña
     if (data.newPassword && data.confirmNewPassword) {
       if (data.newPassword !== data.confirmNewPassword) {
-        alert("Las contraseñas no coinciden");
+        alert(t("profile.passwordsDontMatch"));
         return;
       }
 
       // Verificar que la contraseña actual se haya ingresado
       if (!data.currentPassword) {
-        alert("Por favor ingresa tu contraseña actual");
+        alert(t("profile.enterCurrentPassword"));
         return;
       }
     }
@@ -174,7 +188,7 @@ export default function EditProfileModal({
     const result = await res.json();
 
     if (!res.ok) {
-      alert(result.error || "Error al actualizar el perfil");
+      alert(result.error || t("profile.updateError"));
       return;
     }
 
@@ -185,7 +199,7 @@ export default function EditProfileModal({
     }, 3000);
   } catch (err) {
     console.error(err);
-    alert("Error de conexión con el servidor");
+    alert(t("profile.connectionError"));
   }
 };
 
@@ -195,18 +209,18 @@ export default function EditProfileModal({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <button className="cursor-pointer flex items-center p-1 rounded hover:scale-105 transition-transform">
-            <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> Editar perfil
+            <Pencil1Icon className="w-5 h-5 font-bold text-blue-500 mr-1" /> {t("profile.editProfile")}
           </button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-lg green-interactive">
           <DialogHeader>
-            <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogTitle>{t("profile.title")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 py-4">
           {/* Nombre */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
-              Nombre
+              {t("profile.name")}
             </Label>
             <div className="col-span-3">
               <Input id="name" {...register("name")} />
@@ -219,7 +233,7 @@ export default function EditProfileModal({
           {/* Gmail */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="gmail" className="text-right">
-              Gmail
+              {t("profile.email")}
             </Label>
             <div className="col-span-3">
               <Input id="gmail" {...register("gmail")} disabled />
@@ -233,17 +247,17 @@ export default function EditProfileModal({
           {showSectorAndCompanySize && (
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="sector" className="text-right">
-              Sector
+              {t("profile.sector")}
             </Label>
             <div className="col-span-3 ">
               <select {...register("sector")} className="w-full bg-teal-50 border-gray-300">
-                <option value="">Seleccionar Sector</option>
-                <option value="Gobierno">Gobierno</option>
-                <option value="Salud">Salud</option>
-                <option value="Educación">Educación</option>
-                <option value="Informática">Informática</option>
-                <option value="Telecomunicaciones">Telecomunicaciones</option>
-                <option value="Otros">Otros</option>
+                <option value="">{t("profile.selectSector")}</option>
+                <option value="Gobierno">{t("profile.sector.government")}</option>
+                <option value="Salud">{t("profile.sector.health")}</option>
+                <option value="Educación">{t("profile.sector.education")}</option>
+                <option value="Informática">{t("profile.sector.it")}</option>
+                <option value="Telecomunicaciones">{t("profile.sector.telecom")}</option>
+                <option value="Otros">{t("profile.sector.other")}</option>
               </select>
             </div>
           </div>
@@ -253,15 +267,15 @@ export default function EditProfileModal({
           {showSectorAndCompanySize && (
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="companySize" className="text-left">
-              Tamaño empresa
+              {t("profile.companySize")}
             </Label>
             <div className="col-span-3">
               <select {...register("companySize")} className="w-full bg-teal-50">
-                <option value="">Seleccionar tamaño</option>
-                <option value="0-10">0-10 empleados</option>
-                <option value="11-50">11-50 empleados</option>
-                <option value="51-250">51 a 250 empleados</option>
-                <option value="250+">Más de 250 empleados</option>
+                <option value="">{t("profile.selectSize")}</option>
+                <option value="0-10">{t("profile.size.0-10")}</option>
+                <option value="11-50">{t("profile.size.11-50")}</option>
+                <option value="51-250">{t("profile.size.51-250")}</option>
+                <option value="250+">{t("profile.size.250+")}</option>
               </select>
             </div>
           </div>
@@ -269,7 +283,7 @@ export default function EditProfileModal({
 
           {/* Rol (solo lectura) */}
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="role" className="text-right">Rol</Label>
+            <Label htmlFor="role" className="text-right">{t("profile.role")}</Label>
             <Input
               id="role"
               value={role}
@@ -285,7 +299,7 @@ export default function EditProfileModal({
             onClick={() => setChangePassword(!changePassword)}
             className="mt-2 w-auto min-w-40 cursor-pointer"
           >
-            {changePassword ? "Ocultar cambio de contraseña" : "Cambiar contraseña"}
+            {changePassword ? t("profile.hideChangePassword") : t("profile.changePassword")}
           </Button>
 
           {/* Formulario Cambio de Contraseña */}
@@ -293,7 +307,7 @@ export default function EditProfileModal({
             <>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="currentPassword" className="text-right">
-                  Contraseña actual*
+                  {t("profile.currentPassword")}
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -305,7 +319,7 @@ export default function EditProfileModal({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="newPassword" className="text-right">
-                  Nueva contraseña*
+                  {t("profile.newPassword")}
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -322,7 +336,7 @@ export default function EditProfileModal({
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="confirmNewPassword" className="text-right">
-                  Confirmar nueva contraseña*
+                  {t("profile.confirmNewPassword")}
                 </Label>
                 <div className="col-span-3 bg-teal-50">
                   <Input
@@ -341,7 +355,7 @@ export default function EditProfileModal({
           )}
 
             <DialogFooter>
-              <Button type="submit" className="mt-2 w-full cursor-pointer">Guardar cambios</Button>
+              <Button type="submit" className="mt-2 w-full cursor-pointer">{t("profile.saveChanges")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -350,8 +364,8 @@ export default function EditProfileModal({
       {mounted && successPopup && createPortal(
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-100">
           <div className="green-interactive p-8 rounded-xl shadow-2xl text-center max-w-md mx-4">
-            <h3 className="text-2xl font-bold text-[#2E6347] mb-2">¡Perfil actualizado exitosamente! 🎉</h3>
-            <p className="text-black opacity-90">Los cambios se guardaron correctamente.</p>
+            <h3 className="text-2xl font-bold text-[#2E6347] mb-2">{t("profile.updatedSuccess")}</h3>
+            <p className="text-black opacity-90">{t("profile.changesSaved")}</p>
           </div>
         </div>,
         document.body

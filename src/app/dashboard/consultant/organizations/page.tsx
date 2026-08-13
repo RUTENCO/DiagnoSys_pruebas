@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import ConfirmationPopup from "@/app/components/ConfirmationPopup";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type OrganizationSummary = {
   id: number;
@@ -23,6 +24,7 @@ type OrganizationSummary = {
 };
 
 export default function ConsultantOrganizationsPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [organizations, setOrganizations] = useState<OrganizationSummary[]>([]);
@@ -55,12 +57,12 @@ export default function ConsultantOrganizationsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Error al cargar las organizaciones");
+        throw new Error(data?.error || t("orgsPage.loadError"));
       }
 
       setOrganizations(data.organizations ?? []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al cargar las organizaciones");
+      setError(err instanceof Error ? err.message : t("orgsPage.loadError"));
     } finally {
       setLoading(false);
     }
@@ -114,11 +116,11 @@ export default function ConsultantOrganizationsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || "Error al crear la organización");
+        throw new Error(data?.error || t("orgsPage.createError"));
       }
 
       setMessage(
-        data.message || "Organización agregada a tu lista"
+        data.message || t("orgsPage.addedToList")
       );
 
       setCreateDialogOpen(false);
@@ -130,7 +132,7 @@ export default function ConsultantOrganizationsPage() {
 
       await loadOrganizations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear la organización");
+      setError(err instanceof Error ? err.message : t("orgsPage.createError"));
     } finally {
       setSaving(false);
     }
@@ -163,7 +165,7 @@ export default function ConsultantOrganizationsPage() {
 
   const handleSaveEdit = async (orgId: number) => {
     if (!editUserName.trim() || !editEmail.trim()) {
-      setError("El nombre de usuario y email son requeridos");
+      setError(t("orgsPage.usernameEmailRequired"));
       return;
     }
 
@@ -186,14 +188,14 @@ export default function ConsultantOrganizationsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || "Error al actualizar la organización");
+        throw new Error(data?.error || t("orgsPage.updateError"));
       }
 
-      setMessage("Organización actualizada correctamente");
+      setMessage(t("orgsPage.updatedSuccess"));
       handleCancelEdit();
       await loadOrganizations();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al actualizar la organización");
+      setError(err instanceof Error ? err.message : t("orgsPage.updateError"));
     } finally {
       setUpdatingOrg(false);
     }
@@ -223,15 +225,15 @@ export default function ConsultantOrganizationsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || "Error al eliminar la organización de la lista");
+        throw new Error(data?.error || t("orgsPage.deleteError"));
       }
 
       setOrganizations((prev) =>
         prev.filter((organization) => (organization.consultantOrganizationId ?? organization.id) !== orgId)
       );
-      setMessage(data.message || "Organización eliminada de tu lista");
+      setMessage(data.message || t("orgsPage.removedFromList"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar la organización de la lista");
+      setError(err instanceof Error ? err.message : t("orgsPage.deleteError"));
     } finally {
       setRemovingOrgId(null);
       setPendingRemovalOrgId(null);
@@ -242,9 +244,9 @@ export default function ConsultantOrganizationsPage() {
     <div className="max-w-6xl mx-auto py-8 px-4">
       <div className="flex flex-col gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-[#2E6347] mb-2">Organizaciones</h1>
+          <h1 className="text-3xl font-bold text-[#2E6347] mb-2">{t("orgsPage.title")}</h1>
           <p className="text-gray-600 max-w-2xl">
-            Administra tus organizaciones, revisa cuántos reportes tiene cada una y entra al diagnóstico con un clic.
+            {t("orgsPage.subtitle")}
           </p>
         </div>
 
@@ -252,18 +254,18 @@ export default function ConsultantOrganizationsPage() {
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button className="w-fit bg-[#2E6347] hover:bg-[#265239] text-white">
-                Crear organización
+                {t("orgsPage.createOrg")}
               </Button>
             </DialogTrigger>
             <DialogContent className="green-interactive sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Crear Organización</DialogTitle>
+                <DialogTitle>{t("orgsPage.createOrgTitle")}</DialogTitle>
               </DialogHeader>
 
               <form onSubmit={handleCreate} className="space-y-4" autoComplete="off">
                 <input
                   className="w-full border rounded-md px-3 py-2 placeholder:text-gray-700"
-                  placeholder="Nombre de usuario de la organización"
+                  placeholder={t("orgsPage.usernamePlaceholder")}
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
                   autoComplete="off"
@@ -272,7 +274,7 @@ export default function ConsultantOrganizationsPage() {
                 <input
                   className="w-full border rounded-md px-3 py-2 placeholder:text-gray-700"
                   type="email"
-                  placeholder="Correo electrónico de la organización"
+                  placeholder={t("orgsPage.emailPlaceholder")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="off"
@@ -280,27 +282,27 @@ export default function ConsultantOrganizationsPage() {
                 />
                 <Select value={sector} onValueChange={(value) => setSector(value)}>
                   <SelectTrigger className="w-full bg-green-100 text-gray-900 border rounded-md px-3 py-2">
-                    <SelectValue placeholder="Seleccionar Sector (opcional)" />
+                    <SelectValue placeholder={t("orgsPage.selectSectorOptional")} />
                   </SelectTrigger>
                   <SelectContent className="bg-green-100">
-                    <SelectItem value="Gobierno" className="focus:bg-green-800 focus:text-white">Gobierno</SelectItem>
-                    <SelectItem value="Salud" className="focus:bg-green-800 focus:text-white">Salud</SelectItem>
-                    <SelectItem value="Educación" className="focus:bg-green-800 focus:text-white">Educación</SelectItem>
-                    <SelectItem value="Informática" className="focus:bg-green-800 focus:text-white">Informática</SelectItem>
-                    <SelectItem value="Telecomunicaciones" className="focus:bg-green-800 focus:text-white">Telecomunicaciones</SelectItem>
-                    <SelectItem value="Otros" className="focus:bg-green-800 focus:text-white">Otros</SelectItem>
+                    <SelectItem value="Gobierno" className="focus:bg-green-800 focus:text-white">{t("profile.sector.government")}</SelectItem>
+                    <SelectItem value="Salud" className="focus:bg-green-800 focus:text-white">{t("profile.sector.health")}</SelectItem>
+                    <SelectItem value="Educación" className="focus:bg-green-800 focus:text-white">{t("profile.sector.education")}</SelectItem>
+                    <SelectItem value="Informática" className="focus:bg-green-800 focus:text-white">{t("profile.sector.it")}</SelectItem>
+                    <SelectItem value="Telecomunicaciones" className="focus:bg-green-800 focus:text-white">{t("profile.sector.telecom")}</SelectItem>
+                    <SelectItem value="Otros" className="focus:bg-green-800 focus:text-white">{t("profile.sector.other")}</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <Select value={companySize} onValueChange={(value) => setCompanySize(value)}>
                   <SelectTrigger className="w-full bg-green-100 text-gray-900 border rounded-md px-3 py-2">
-                    <SelectValue placeholder="Seleccionar Tamaño de Empresa (opcional)" />
+                    <SelectValue placeholder={t("orgsPage.selectCompanySizeOptional")} />
                   </SelectTrigger>
                   <SelectContent className="bg-green-100">
-                    <SelectItem value="0-10" className="focus:bg-green-800 focus:text-white">0-10 empleados</SelectItem>
-                    <SelectItem value="11-50" className="focus:bg-green-800 focus:text-white">11-50 empleados</SelectItem>
-                    <SelectItem value="51-250" className="focus:bg-green-800 focus:text-white">51 a 250 empleados</SelectItem>
-                    <SelectItem value="250+" className="focus:bg-green-800 focus:text-white">Más de 250 empleados</SelectItem>
+                    <SelectItem value="0-10" className="focus:bg-green-800 focus:text-white">{t("profile.size.0-10")}</SelectItem>
+                    <SelectItem value="11-50" className="focus:bg-green-800 focus:text-white">{t("profile.size.11-50")}</SelectItem>
+                    <SelectItem value="51-250" className="focus:bg-green-800 focus:text-white">{t("profile.size.51-250")}</SelectItem>
+                    <SelectItem value="250+" className="focus:bg-green-800 focus:text-white">{t("profile.size.250+")}</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -312,14 +314,14 @@ export default function ConsultantOrganizationsPage() {
                     disabled={saving}
                     className="w-full sm:w-auto"
                   >
-                    Cancelar
+                    {t("common.cancel")}
                   </Button>
                   <Button
                     type="submit"
                     disabled={saving}
                     className="w-full bg-[#2E6347] text-white hover:bg-[#265239] sm:w-auto"
                   >
-                    {saving ? "Creando..." : "Crear Organización"}
+                    {saving ? t("orgsPage.creating") : t("orgsPage.createOrgTitle")}
                   </Button>
                 </DialogFooter>
               </form>
@@ -331,19 +333,19 @@ export default function ConsultantOrganizationsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="green-interactive rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-sm text-gray-600">Organizaciones</p>
+          <p className="text-sm text-gray-600">{t("orgsPage.organizationsStat")}</p>
           <p className="text-3xl font-bold text-[#2E6347]">{organizations.length}</p>
         </div>
         <div className="green-interactive rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-sm text-gray-600">Reportes totales</p>
+          <p className="text-sm text-gray-600">{t("orgsPage.totalReports")}</p>
           <p className="text-3xl font-bold text-[#2E6347]">
             {organizations.reduce((sum, org) => sum + org.stats.reportsCount, 0)}
           </p>
         </div>
         <div className="green-interactive rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <p className="text-sm text-gray-600">Estado</p>
+          <p className="text-sm text-gray-600">{t("orgsPage.status")}</p>
           <p className="text-lg font-semibold text-[#2E6347]">
-            {loading ? "Cargando..." : "Listo para gestionar"}
+            {loading ? t("common.loading") : t("orgsPage.readyToManage")}
           </p>
         </div>
       </div>
@@ -353,14 +355,14 @@ export default function ConsultantOrganizationsPage() {
 
       <section className="green-interactive rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-lg transition">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Mis Organizaciones</h2>
-          <span className="text-sm text-gray-500">{organizations.length} registradas</span>
+          <h2 className="text-xl font-semibold">{t("orgsPage.myOrganizations")}</h2>
+          <span className="text-sm text-gray-500">{organizations.length} {t("orgsPage.registered")}</span>
         </div>
 
-        {loading ? <p>Cargando...</p> : null}
+        {loading ? <p>{t("common.loading")}</p> : null}
 
         {!loading && organizations.length === 0 ? (
-          <p className="text-gray-600">Aún no hay organizaciones creadas.</p>
+          <p className="text-gray-600">{t("orgsPage.noOrganizations")}</p>
         ) : null}
 
         <div className="grid grid-cols-1 gap-4">
@@ -373,15 +375,15 @@ export default function ConsultantOrganizationsPage() {
                 <div className="space-y-1">
                   <h3 className="font-semibold text-lg text-[#2E6347]">{org.name}</h3>
                   <p className="text-sm text-gray-600">
-                    Usuario: {org.name} | Email: {org.email}
+                    {t("orgsPage.userLabel")} {org.name} | {t("orgsPage.emailLabel")} {org.email}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {org.linkedUserId ? "Vinculada a una cuenta real" : "Aún no vinculada a una cuenta"}
+                    {org.linkedUserId ? t("orgsPage.linkedAccount") : t("orgsPage.notLinkedAccount")}
                   </p>
                 </div>
 
                 <div className="rounded-lg bg-[#2E6347]/10 px-4 py-3 text-center min-w-44">
-                  <p className="text-xs uppercase tracking-wide text-gray-600">Reportes realizados</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-600">{t("orgsPage.reportsMade")}</p>
                   <p className="text-3xl font-bold text-[#2E6347]">{org.stats.reportsCount}</p>
                 </div>
               </div>
@@ -391,20 +393,20 @@ export default function ConsultantOrganizationsPage() {
                   onClick={() => startDiagnosis(org)}
                   className="bg-[#2E6347] text-white px-3 py-2 rounded-md  cursor-pointer"
                 >
-                  Entrar al diagnóstico
+                  {t("orgsPage.enterDiagnosis")}
                 </button>
                 <button
                   onClick={() => handleOpenEdit(org)}
                   className="border border-[#2E6347] text-[#2E6347] px-3 py-2 rounded-md cursor-pointer"
                 >
-                  Editar
+                  {t("common.edit")}
                 </button>
                 <button
                   onClick={() => handleRemoveOrganization(org.consultantOrganizationId ?? org.id)}
                   disabled={removingOrgId === (org.consultantOrganizationId ?? org.id)}
                   className="border border-red-400 text-red-600 px-3 py-2 rounded-md cursor-pointer disabled:opacity-60"
                 >
-                  {removingOrgId === (org.consultantOrganizationId ?? org.id) ? "Eliminando..." : "Eliminar"}
+                  {removingOrgId === (org.consultantOrganizationId ?? org.id) ? t("common.deleting") : t("common.delete")}
                 </button>
               </div>
 
@@ -414,7 +416,7 @@ export default function ConsultantOrganizationsPage() {
                     className="w-full border rounded-md px-3 py-2"
                     value={editUserName}
                     onChange={(e) => setEditUserName(e.target.value)}
-                    placeholder="Nombre de usuario de la organización"
+                    placeholder={t("orgsPage.usernamePlaceholder")}
                     autoComplete="off"
                   />
                   <input
@@ -422,7 +424,7 @@ export default function ConsultantOrganizationsPage() {
                     type="email"
                     value={editEmail}
                     onChange={(e) => setEditEmail(e.target.value)}
-                    placeholder="Correo electrónico de la organización"
+                    placeholder={t("orgsPage.emailPlaceholder")}
                     autoComplete="off"
                   />
                   <select
@@ -430,24 +432,24 @@ export default function ConsultantOrganizationsPage() {
                     value={editSector}
                     onChange={(e) => setEditSector(e.target.value)}
                   >
-                    <option value="">Seleccionar Sector</option>
-                    <option value="Gobierno">Gobierno</option>
-                    <option value="Salud">Salud</option>
-                    <option value="Educación">Educación</option>
-                    <option value="Informática">Informática</option>
-                    <option value="Telecomunicaciones">Telecomunicaciones</option>
-                    <option value="Otros">Otros</option>
+                    <option value="">{t("profile.selectSector")}</option>
+                    <option value="Gobierno">{t("profile.sector.government")}</option>
+                    <option value="Salud">{t("profile.sector.health")}</option>
+                    <option value="Educación">{t("profile.sector.education")}</option>
+                    <option value="Informática">{t("profile.sector.it")}</option>
+                    <option value="Telecomunicaciones">{t("profile.sector.telecom")}</option>
+                    <option value="Otros">{t("profile.sector.other")}</option>
                   </select>
                   <select
                     className="w-full border rounded-md px-3 py-2"
                     value={editCompanySize}
                     onChange={(e) => setEditCompanySize(e.target.value)}
                   >
-                    <option value="">Seleccionar Tamaño de Empresa</option>
-                    <option value="0-10">0-10 empleados</option>
-                    <option value="11-50">11-50 empleados</option>
-                    <option value="51-250">51 a 250 empleados</option>
-                    <option value="250+">Más de 250 empleados</option>
+                    <option value="">{t("orgsPage.selectCompanySize")}</option>
+                    <option value="0-10">{t("profile.size.0-10")}</option>
+                    <option value="11-50">{t("profile.size.11-50")}</option>
+                    <option value="51-250">{t("profile.size.51-250")}</option>
+                    <option value="250+">{t("profile.size.250+")}</option>
                   </select>
                   <div className="flex gap-2">
                     <button
@@ -455,14 +457,14 @@ export default function ConsultantOrganizationsPage() {
                       disabled={updatingOrg}
                       className="bg-primary text-white px-3 py-2 rounded-md disabled:opacity-60"
                     >
-                      {updatingOrg ? "Guardando..." : "Guardar"}
+                      {updatingOrg ? t("common.saving") : t("common.save")}
                     </button>
                     <button
                       onClick={handleCancelEdit}
                       disabled={updatingOrg}
                       className="border border-gray-400 px-3 py-2 rounded-md disabled:opacity-60"
                     >
-                      Cancelar
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -474,10 +476,10 @@ export default function ConsultantOrganizationsPage() {
 
       <ConfirmationPopup
         open={pendingRemovalOrgId !== null}
-        title="Eliminar organización"
-        message="¿Quieres eliminar esta organización de tu lista?"
-        confirmLabel="Eliminar"
-        cancelLabel="Cancelar"
+        title={t("orgsPage.deleteOrgTitle")}
+        message={t("orgsPage.deleteOrgMessage")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         confirmTone="destructive"
         onConfirm={confirmRemoveOrganization}
         onCancel={() => setPendingRemovalOrgId(null)}

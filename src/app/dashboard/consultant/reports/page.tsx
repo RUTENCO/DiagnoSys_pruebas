@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/app/components/shadcn-charts/card";
 import ConfirmationPopup from "@/app/components/ConfirmationPopup";
 import { Calendar, ChevronRight, Eye, TrendingUp, BarChart3 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface ReportSummary {
     id: number;
@@ -64,6 +65,7 @@ function removeReportFromOrganizations(
 }
 
 export default function ReportsPage() {
+    const { t } = useLanguage();
     const router = useRouter();
     const { status } = useSession();
     const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function ReportsPage() {
     }, [organizations]);
 
     const formatDate = (dateString: string | null) => {
-        if (!dateString) return "Sin fecha";
+        if (!dateString) return t("consultantReports.noDate");
         return new Date(dateString).toLocaleDateString('es-CO', {
             year: 'numeric',
             month: 'short',
@@ -149,7 +151,7 @@ export default function ReportsPage() {
 
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data?.error || "Error al eliminar el reporte");
+                throw new Error(data?.error || t("consultantReports.deleteReportError"));
             }
 
             setOrganizations((prev) => removeReportFromOrganizations(prev, organizationId, reportId));
@@ -245,10 +247,10 @@ export default function ReportsPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347] mb-2">
-                        Reportes por Organización
+                        {t("consultantReports.title")}
                     </h1>
                     <p className="text-black">
-                        Revisa los reportes de cada organización que gestionas desde una sola vista.
+                        {t("consultantReports.subtitle")}
                     </p>
                 </div>
 
@@ -258,7 +260,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Organizaciones</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("consultantReports.organizations")}</p>
                                     <p className="text-2xl font-bold">{summary.totalOrganizations}</p>
                                 </div>
                             </div>
@@ -270,7 +272,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Reportes</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("consultantReports.reports")}</p>
                                     <p className="text-2xl font-bold">{summary.totalReports}</p>
                                 </div>
                             </div>
@@ -282,7 +284,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-blue-500" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Completados</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("consultantReports.completed")}</p>
                                     <p className="text-2xl font-bold">{summary.completedReports}</p>
                                 </div>
                             </div>
@@ -295,8 +297,8 @@ export default function ReportsPage() {
                         <CardContent className="py-12 text-center">
                             <div className="text-[#2E6347]">
                                 <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50 text-[#2E6347]" />
-                                <h3 className="text-lg font-medium mb-2">Sin reportes disponibles</h3>
-                                <p>Cuando una organización genere reportes, aparecerán aquí agrupados por organización.</p>
+                                <h3 className="text-lg font-medium mb-2">{t("consultantReports.noReportsTitle")}</h3>
+                                <p>{t("consultantReports.noReportsDesc")}</p>
                             </div>
                         </CardContent>
                     </Card>
@@ -309,22 +311,22 @@ export default function ReportsPage() {
                                         <div>
                                             <h2 className="text-2xl font-bold text-[#2E6347] mb-2">{organization.name}</h2>
                                             <p className="text-gray-700">
-                                                Sector: {organization.sector || "No especificado"} | Tamaño: {organization.companySize || "No especificado"}
+                                                {t("consultantReports.sectorLabel")}: {organization.sector || t("consultantReports.notSpecified")} | {t("consultantReports.sizeLabel")}: {organization.companySize || t("consultantReports.notSpecified")}
                                             </p>
                                             <p className="text-sm text-gray-500 mt-1">
-                                                Usuario: {organization.userName} | Email: {organization.email}
+                                                {t("consultantReports.userLabel")}: {organization.userName} | {t("consultantReports.emailLabel")}: {organization.email}
                                             </p>
                                         </div>
 
                                         <div className="rounded-xl border border-primary/20 bg-white/80 px-4 py-3 text-center min-w-44">
-                                            <p className="text-xs uppercase tracking-wide text-gray-500">Reportes</p>
+                                            <p className="text-xs uppercase tracking-wide text-gray-500">{t("consultantReports.reports")}</p>
                                             <p className="text-3xl font-bold text-[#2E6347]">{organization.stats.reportsCount}</p>
                                         </div>
                                     </div>
 
                                     {organization.reports.length === 0 ? (
                                         <div className="rounded-lg border border-dashed border-gray-300 p-5 text-gray-600">
-                                            Aún no tiene reportes creados.
+                                            {t("consultantReports.noReportsYet")}
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -333,17 +335,17 @@ export default function ReportsPage() {
                                                     <div className="flex items-start gap-3">
                                                         <div>
                                                             <h3 className="text-lg font-semibold text-[#2E6347]">{report.name}</h3>
-                                                            <p className="text-sm text-gray-500">Versión {report.version}</p>
+                                                            <p className="text-sm text-gray-500">{t("consultantReports.versionLabel")} {report.version}</p>
                                                         </div>
                                                     </div>
 
                                                     <div className="mt-4 space-y-2 text-sm text-gray-600">
                                                         <p className="flex items-center gap-2">
                                                             <Calendar className="h-4 w-4" />
-                                                            Creado: {formatDate(report.createdAt)}
+                                                            {t("consultantReports.createdLabel")}: {formatDate(report.createdAt)}
                                                         </p>
-                                                        <p>Completados: {report.stats.completedForms}/{report.stats.totalForms}</p>
-                                                        <p>Progreso: {report.stats.completionRate}%</p>
+                                                        <p>{t("consultantReports.completedFormsLabel")}: {report.stats.completedForms}/{report.stats.totalForms}</p>
+                                                        <p>{t("consultantReports.progressLabel")}: {report.stats.completionRate}%</p>
                                                     </div>
 
                                                     <div className="mt-4 flex flex-col gap-2">
@@ -353,7 +355,7 @@ export default function ReportsPage() {
                                                             onClick={() => openReport(organization, report.id)}
                                                         >
                                                             <Eye className="h-4 w-4" />
-                                                            Ver reporte
+                                                            {t("consultantReports.viewReport")}
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -362,7 +364,7 @@ export default function ReportsPage() {
                                                             onClick={() => continueReport(organization, report.id)}
                                                         >
                                                             <ChevronRight className="h-4 w-4" />
-                                                            Ir al diagnóstico
+                                                            {t("consultantReports.goToDiagnostic")}
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -371,7 +373,7 @@ export default function ReportsPage() {
                                                             onClick={() => removeReport(organization.id, report.id)}
                                                             disabled={deletingReportId === report.id}
                                                         >
-                                                            {deletingReportId === report.id ? "Eliminando..." : "Eliminar reporte"}
+                                                            {deletingReportId === report.id ? t("consultantReports.deleting") : t("consultantReports.deleteReport")}
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -387,10 +389,10 @@ export default function ReportsPage() {
 
             <ConfirmationPopup
                 open={pendingRemoval !== null}
-                title="Eliminar reporte"
-                message="¿Quieres eliminar este reporte de la lista?"
-                confirmLabel="Eliminar"
-                cancelLabel="Cancelar"
+                title={t("consultantReports.deleteReportTitle")}
+                message={t("consultantReports.deleteReportMessage")}
+                confirmLabel={t("common.delete")}
+                cancelLabel={t("common.cancel")}
                 confirmTone="destructive"
                 onConfirm={confirmRemoveReport}
                 onCancel={() => setPendingRemoval(null)}

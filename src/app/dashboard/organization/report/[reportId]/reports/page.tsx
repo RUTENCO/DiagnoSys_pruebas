@@ -8,6 +8,7 @@ import { FormRadarChart } from "@/app/components/shadcn-charts/radar-chart/form-
 import { Card, CardContent, CardHeader } from "@/app/components/shadcn-charts/card";
 import { Button } from "@/components/ui/button";
 import { buildReportPdfFilename, extractFilenameFromContentDisposition } from "@/lib/report-config";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface CategoryData {
     name: string;
@@ -77,6 +78,7 @@ type ContentView = "charts" | "categorization" | "prioritization";
 type ChartFilter = "all" | "zoom-in" | "zoom-out";
 
 export default function ReportsPage() {
+    const { t } = useLanguage();
     const router = useRouter();
     const { status } = useSession();
     const searchParams = useSearchParams();
@@ -130,7 +132,7 @@ export default function ReportsPage() {
     });
 
     const formatSavedAt = (date: string | null) => {
-        if (!date) return "Sin fecha";
+        if (!date) return t("consultantReports.noDate");
         return new Date(date).toLocaleString("es-CO", {
             dateStyle: "medium",
             timeStyle: "short",
@@ -197,7 +199,7 @@ export default function ReportsPage() {
     const showZoomOutCharts = chartFilter !== "zoom-in";
     const logoSrc = reportDisplayConfig.logoUrl ?? undefined;
     const fallbackLogoSrc = "/logoudea.svg";
-    const reportPageTitle = reportDisplayConfig.headerSubtitle?.trim() || "Visualiza gráficas de radar y resúmenes ejecutivos";
+    const reportPageTitle = reportDisplayConfig.headerSubtitle?.trim() || t("orgReport.defaultSubtitle");
     const totalFormularios =
         zoomInForms.length +
         zoomOutForms.length +
@@ -210,7 +212,7 @@ export default function ReportsPage() {
             const sep = contextQuery ? `?${contextQuery.slice(1)}` : "";
             const response = await fetch(`/api/organization/reports/${reportId}/pdf${sep}`);
             if (!response.ok) {
-                throw new Error("No se pudo generar el PDF");
+                throw new Error(t("orgReport.pdfGenerateError"));
             }
 
             const blob = await response.blob();
@@ -222,7 +224,7 @@ export default function ReportsPage() {
             URL.revokeObjectURL(blobUrl);
         } catch (downloadError) {
             console.error("Error downloading PDF", downloadError);
-            alert("No se pudo descargar el informe en PDF");
+            alert(t("orgReport.pdfDownloadError"));
         } finally {
             setIsDownloadingPdf(false);
         }
@@ -276,7 +278,7 @@ export default function ReportsPage() {
                                 {reportPageTitle}
                             </h1>
                             <p className="mt-5 text-lg text-[#24533b]">
-                                Visualiza gráficas de radar y resúmenes ejecutivos, y descarga el informe en PDF con la configuración institucional seleccionada.
+                                {t("orgReport.headerDescription")}
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -284,7 +286,7 @@ export default function ReportsPage() {
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                     src={logoSrc}
-                                    alt="Logo institucional"
+                                    alt={t("orgReport.logoAlt")}
                                     className="h-12 w-auto rounded bg-white p-1"
                                     onError={(event) => {
                                         const image = event.currentTarget;
@@ -305,10 +307,10 @@ export default function ReportsPage() {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        Generando PDF...
+                                        {t("orgReport.generatingPdf")}
                                     </>
                                 ) : (
-                                    "Descargar en PDF"
+                                    t("orgReport.downloadPdf")
                                 )}
                             </Button>
                         </div>
@@ -319,11 +321,10 @@ export default function ReportsPage() {
                     <Card className="green-interactive mb-8 border">
                         <CardContent className="p-5">
                             <h2 className="text-xl font-semibold mb-2 text-[#2E6347]">
-                                Resumen Ejecutivo
+                                {t("orgReport.executiveSummaryTitle")}
                             </h2>
                             <p className="text-sm text-[#24533b]">
-                                Este informe consolida el estado del diagnóstico digital con resultados por módulo,
-                                categorización, priorización y plan de acción recomendado.
+                                {t("orgReport.executiveSummaryText")}
                             </p>
                         </CardContent>
                     </Card>
@@ -336,7 +337,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom In</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("reportsPage.zoomInForms")}</p>
                                     <p className="text-2xl font-bold text-[#24533b]">{zoomInForms.length}</p>
                                 </div>
                             </div>
@@ -348,7 +349,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <BarChart3 className="h-9 w-9 text-emerald-800" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Formularios Zoom Out</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("reportsPage.zoomOutForms")}</p>
                                     <p className="text-2xl font-bold text-[#24533b]">{zoomOutForms.length}</p>
                                 </div>
                             </div>
@@ -360,7 +361,7 @@ export default function ReportsPage() {
                             <div className="flex items-center space-x-8">
                                 <TrendingUp className="h-9 w-9 text-[#2E6347]" />
                                 <div>
-                                    <p className="text-2xl font-medium text-[#2E6347]">Total Formularios</p>
+                                    <p className="text-2xl font-medium text-[#2E6347]">{t("orgReport.totalForms")}</p>
                                     <p className="text-2xl font-bold text-[#24533b]">
                                         {totalFormularios}
                                     </p>
@@ -375,7 +376,7 @@ export default function ReportsPage() {
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex items-center gap-2 text-sm text-[#2E6347] font-semibold">
                                 <Layers3 className="h-5 w-5" />
-                                Cambiar vista de resultados
+                                {t("orgReport.changeView")}
                             </div>
                             <div className="flex flex-wrap gap-2 justify-end">
                                 {reportDisplayConfig.showRadar && <Button
@@ -385,7 +386,7 @@ export default function ReportsPage() {
                                     onClick={() => setActiveView("charts")}
                                 >
                                     <Radar className="h-4 w-4 mr-2" />
-                                    Gráficas
+                                    {t("orgReport.chartsTab")}
                                 </Button>}
                                 {reportDisplayConfig.showCategorization && <Button
                                     size="sm"
@@ -394,7 +395,7 @@ export default function ReportsPage() {
                                     onClick={() => setActiveView("categorization")}
                                 >
                                     <Sparkles className="h-4 w-4 mr-2" />
-                                    Categorización
+                                    {t("nav.categorization")}
                                 </Button>}
                                 {reportDisplayConfig.showPrioritization && <Button
                                     size="sm"
@@ -403,7 +404,7 @@ export default function ReportsPage() {
                                     onClick={() => setActiveView("prioritization")}
                                 >
                                     <ListChecks className="h-4 w-4 mr-2" />
-                                    Priorización
+                                    {t("nav.prioritization")}
                                 </Button>}
                             </div>
                         </div>
@@ -414,7 +415,7 @@ export default function ReportsPage() {
                     <div className="green-interactive mb-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between rounded-xl border border-emerald-100 px-6 py-4">
                         <div className="flex items-center gap-2 text-sm text-[#2E6347]  font-semibold">
                             <ListFilter className="h-4 w-4" />
-                            Filtrar radar por módulo
+                            {t("orgReport.filterRadarByModule")}
                         </div>
                         <div className="flex flex-wrap gap-2 justify-end">
                             <Button
@@ -423,7 +424,7 @@ export default function ReportsPage() {
                                 className={`${chartFilter === "all" ? "bg-[#2E6347] text-white" : ""} h-9 w-48 text-sm hover:bg-[#24533b] hover:text-white`}
                                 onClick={() => setChartFilter("all")}
                             >
-                                Zoom In + Zoom Out
+                                {t("orgReport.filterAll")}
                             </Button>
                             <Button
                                 size="sm"
@@ -431,7 +432,7 @@ export default function ReportsPage() {
                                 className={`${chartFilter === "zoom-in" ? "bg-[#2E6347] text-white" : ""} h-9 w-48 text-sm hover:bg-[#24533b] hover:text-white`}
                                 onClick={() => setChartFilter("zoom-in")}
                             >
-                                Solo Zoom In
+                                {t("orgReport.filterZoomInOnly")}
                             </Button>
                             <Button
                                 size="sm"
@@ -439,7 +440,7 @@ export default function ReportsPage() {
                                 className={`${chartFilter === "zoom-out" ? "bg-[#2E6347] text-white" : ""} h-9 w-48 text-sm hover:bg-[#24533b] hover:text-white`}
                                 onClick={() => setChartFilter("zoom-out")}
                             >
-                                Solo Zoom Out
+                                {t("orgReport.filterZoomOutOnly")}
                             </Button>
                         </div>
                     </div>
@@ -451,14 +452,14 @@ export default function ReportsPage() {
                             <div className="mb-12">
                                 <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                                     <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                                    Zoom In - Evaluación de Habilidades
+                                    {t("reportsPage.zoomInSection")}
                                 </h2>
                                 <div className="flex flex-col gap-6">
                                     {zoomInForms.map((form) => (
                                         <div key={form.id} className="min-h-[400px] flex">
                                             <FormRadarChart
                                                 title={form.name}
-                                                description={`Módulo: ${form.module} | Puntaje Prom: ${form.stats.avgScore}/5.0`}
+                                                description={`${t("orgReport.moduleLabel")}: ${form.module} | ${t("orgReport.avgScoreLabel")}: ${form.stats.avgScore}/5.0`}
                                                 data={form.categoryData}
                                                 className="w-full"
                                             />
@@ -472,14 +473,14 @@ export default function ReportsPage() {
                             <div className="mb-12">
                                 <h2 className="text-2xl font-bold text-[#2E6347] mb-6 flex items-center">
                                     <Radar className="h-6 w-6 mr-2 text-[#2E6347]" />
-                                    Zoom Out - Evaluación de Capacidades
+                                    {t("reportsPage.zoomOutSection")}
                                 </h2>
                                 <div className="flex flex-col gap-6">
                                     {zoomOutForms.map((form) => (
                                         <div key={form.id} className="min-h-[400px] flex">
                                             <FormRadarChart
                                                 title={form.name}
-                                                description={`Módulo: ${form.module} | Puntaje Prom: ${form.stats.avgScore}/5.0`}
+                                                description={`${t("orgReport.moduleLabel")}: ${form.module} | ${t("orgReport.avgScoreLabel")}: ${form.stats.avgScore}/5.0`}
                                                 data={form.categoryData}
                                                 className="w-full"
                                             />
@@ -496,8 +497,8 @@ export default function ReportsPage() {
                                 <CardContent className="py-12 text-center">
                                     <div className="text-[#2E6347]">
                                         <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50 text-[#2E6347]" />
-                                        <h3 className="text-lg font-medium mb-2">Sin gráficas para este filtro</h3>
-                                        <p>Prueba con otro filtro o completa más formularios para generar resultados.</p>
+                                        <h3 className="text-lg font-medium mb-2">{t("orgReport.noChartsTitle")}</h3>
+                                        <p>{t("orgReport.noChartsDesc")}</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -511,53 +512,53 @@ export default function ReportsPage() {
                             <div className="flex flex-col gap-1">
                                 <h2 className="text-2xl font-bold text-[#2E6347] flex items-center gap-2">
                                     <Sparkles className="h-6 w-6" />
-                                    Resumen de Categorización
+                                    {t("orgReport.categorizationSummaryTitle")}
                                 </h2>
                                 <p className="text-sm text-gray-700">
-                                    Última actualización: {formatSavedAt(categorizationSummary.savedAt)}
+                                    {t("orgReport.lastUpdated")} {formatSavedAt(categorizationSummary.savedAt)}
                                 </p>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="rounded-xl bg-teal-50 p-4 border border-green-600">
-                                    <p className="text-sm text-green-800">Oportunidades</p>
+                                    <p className="text-sm text-green-800">{t("categorization.opportunities")}</p>
                                     <p className="text-2xl font-bold text-green-900">{categorizationSummary.opportunities.length}</p>
                                 </div>
                                 <div className="rounded-xl bg-orange-50 p-4 border border-orange-300">
-                                    <p className="text-sm text-orange-400">Necesidades</p>
+                                    <p className="text-sm text-orange-400">{t("categorization.needs")}</p>
                                     <p className="text-2xl font-bold text-orange-700">{categorizationSummary.needs.length}</p>
                                 </div>
                                 <div className="rounded-xl bg-red-50 p-4 border border-red-700">
-                                    <p className="text-sm text-red-700">Problemas</p>
+                                    <p className="text-sm text-red-700">{t("categorization.problems")}</p>
                                     <p className="text-2xl font-bold text-red-900">{categorizationSummary.problems.length}</p>
                                 </div>
                             </div>
 
                             {!categorizationSummary.hasData ? (
-                                <p className="text-sm text-gray-600">Aún no hay una sesión de categorización guardada para este reporte.</p>
+                                <p className="text-sm text-gray-600">{t("orgReport.noCategorizationData")}</p>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                     <SummaryColumn
-                                        title="Oportunidades"
+                                        title={t("categorization.opportunities")}
                                         items={categorizationSummary.opportunities}
-                                        emptyLabel="Sin oportunidades registradas"
+                                        emptyLabel={t("orgReport.noOpportunities")}
                                         titleClass="text-green-800"
                                         chipClass="bg-green-100 border border-green-600"
                                         containerClass="border-green-600"
                                     />
                                     <SummaryColumn
-                                        title="Necesidades"
+                                        title={t("categorization.needs")}
                                         items={categorizationSummary.needs}
-                                        emptyLabel="Sin necesidades registradas"
+                                        emptyLabel={t("orgReport.noNeeds")}
                                         titleClass="text-orange-400"
                                         chipClass="bg-orange-100 border border-orange-300"
                                         containerClass="border-orange-300"
                                     />
                                     <SummaryColumn
-                                        title="Problemas"
+                                        title={t("categorization.problems")}
                                         items={categorizationSummary.problems}
-                                        emptyLabel="Sin problemas registrados"
+                                        emptyLabel={t("orgReport.noProblems")}
                                         titleClass="text-red-700"
                                         chipClass="bg-red-100 border border-red-700"
                                         containerClass="border-red-700"
@@ -574,73 +575,73 @@ export default function ReportsPage() {
                             <div className="flex flex-col gap-1">
                                 <h2 className="text-2xl font-bold text-[#2E6347] flex items-center gap-2">
                                     <ListChecks className="h-6 w-6" />
-                                    Resumen de Priorización
+                                    {t("orgReport.prioritizationSummaryTitle")}
                                 </h2>
                                 <p className="text-sm text-gray-700">
-                                    Última actualización: {formatSavedAt(prioritizationSummary.savedAt)}
+                                    {t("orgReport.lastUpdated")} {formatSavedAt(prioritizationSummary.savedAt)}
                                 </p>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div className="rounded-xl bg-yellow-50 p-4 border border-yellow-400">
-                                    <p className="text-xs uppercase tracking-wide text-yellow-700">Alto impacto</p>
-                                    <p className="text-xs uppercase text-yellow-700">Baja urgencia</p>
+                                    <p className="text-xs uppercase tracking-wide text-yellow-700">{t("orgReport.highImpact")}</p>
+                                    <p className="text-xs uppercase text-yellow-700">{t("orgReport.lowUrgency")}</p>
                                     <p className="text-2xl font-bold text-yellow-800">{prioritizationSummary.mediumPriority.length}</p>
                                 </div>
                                 <div className="rounded-xl bg-emerald-50 p-4 border border-emerald-600">
-                                    <p className="text-xs uppercase tracking-wide text-emerald-800">Alto impacto</p>
-                                    <p className="text-xs uppercase text-emerald-800">Alta urgencia</p>
+                                    <p className="text-xs uppercase tracking-wide text-emerald-800">{t("orgReport.highImpact")}</p>
+                                    <p className="text-xs uppercase text-emerald-800">{t("orgReport.highUrgency")}</p>
                                     <p className="text-2xl font-bold text-emerald-900">{prioritizationSummary.highPriority.length}</p>
                                 </div>
                                 <div className="rounded-xl bg-red-50 p-4 border border-red-400">
-                                    <p className="text-xs uppercase tracking-wide text-red-800">Bajo impacto</p>
-                                    <p className="text-xs uppercase text-red-800">Baja urgencia</p>
+                                    <p className="text-xs uppercase tracking-wide text-red-800">{t("orgReport.lowImpact")}</p>
+                                    <p className="text-xs uppercase text-red-800">{t("orgReport.lowUrgency")}</p>
                                     <p className="text-2xl font-bold text-red-900">{prioritizationSummary.lowPriority.length}</p>
                                 </div>
                                 <div className="rounded-xl bg-yellow-50 p-4 border border-yellow-400">
-                                    <p className="text-xs uppercase tracking-wide text-yellow-700">Bajo impacto</p>
-                                    <p className="text-xs uppercase text-yellow-700">Alta urgencia</p>
+                                    <p className="text-xs uppercase tracking-wide text-yellow-700">{t("orgReport.lowImpact")}</p>
+                                    <p className="text-xs uppercase text-yellow-700">{t("orgReport.highUrgency")}</p>
                                     <p className="text-2xl font-bold text-yellow-800">{prioritizationSummary.mediumPriority2.length}</p>
                                 </div>
                             </div>
 
                             {!prioritizationSummary.hasData ? (
-                                <p className="text-sm text-gray-600">Aún no hay una sesión de priorización guardada para este reporte.</p>
+                                <p className="text-sm text-gray-600">{t("orgReport.noPrioritizationData")}</p>
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                     <SummaryColumn
-                                        title="Prioridad media"
-                                        subtitle="Alto impacto · Baja urgencia"
+                                        title={t("priorization.mediumPriority")}
+                                        subtitle={t("orgReport.highImpactLowUrgencySubtitle")}
                                         items={prioritizationSummary.mediumPriority}
-                                        emptyLabel="Sin elementos"
+                                        emptyLabel={t("orgReport.noItems")}
                                         titleClass="text-yellow-700"
                                         chipClass="bg-yellow-100 border border-yellow-400"
                                         containerClass="border-yellow-400"
                                     />
                                     <SummaryColumn
-                                        title="Alta prioridad"
-                                        subtitle="Alto impacto · Alta urgencia"
+                                        title={t("priorization.highPriorityTitle")}
+                                        subtitle={t("orgReport.highImpactHighUrgencySubtitle")}
                                         items={prioritizationSummary.highPriority}
-                                        emptyLabel="Sin elementos"
+                                        emptyLabel={t("orgReport.noItems")}
                                         titleClass="text-emerald-800"
                                         chipClass="bg-emerald-100 border border-emerald-600"
                                         containerClass="border-emerald-600"
                                     />
                                     <SummaryColumn
-                                        title="Baja prioridad"
-                                        subtitle="Bajo impacto · Baja urgencia"
+                                        title={t("priorization.lowPriorityTitle")}
+                                        subtitle={t("orgReport.lowImpactLowUrgencySubtitle")}
                                         items={prioritizationSummary.lowPriority}
-                                        emptyLabel="Sin elementos"
+                                        emptyLabel={t("orgReport.noItems")}
                                         titleClass="text-red-800"
                                         chipClass="bg-red-100 border border-red-400"
                                         containerClass="border-red-400"
                                     />
                                     <SummaryColumn
-                                        title="Prioridad media"
-                                        subtitle="Bajo impacto · Alta urgencia"
+                                        title={t("priorization.mediumPriority")}
+                                        subtitle={t("orgReport.lowImpactHighUrgencySubtitle")}
                                         items={prioritizationSummary.mediumPriority2}
-                                        emptyLabel="Sin elementos"
+                                        emptyLabel={t("orgReport.noItems")}
                                         titleClass="text-yellow-700"
                                         chipClass="bg-yellow-100 border border-yellow-400"
                                         containerClass="border-yellow-400"
@@ -654,16 +655,16 @@ export default function ReportsPage() {
                 {reportDisplayConfig.showActionPlan && (
                     <Card className="green-interactive border border-emerald-100 mt-8">
                         <CardHeader>
-                            <h2 className="text-2xl font-bold text-[#2E6347]">Plan de acción recomendado</h2>
+                            <h2 className="text-2xl font-bold text-[#2E6347]">{t("orgReport.actionPlanTitle")}</h2>
                         </CardHeader>
                         <CardContent>
                             {!actionPlanSummary.hasData ? (
-                                <p className="text-sm text-gray-600">No hay insumos de priorización para construir el plan de acción.</p>
+                                <p className="text-sm text-gray-600">{t("orgReport.noActionPlanData")}</p>
                             ) : (
                                 <div className="space-y-3">
                                     {actionPlanSummary.items.map((item) => (
                                         <div key={`${item.order}-${item.name}`} className="rounded-lg border border-emerald-200 bg-white/70 px-4 py-3">
-                                            <p className="text-xs text-gray-500">Paso {item.order} · {item.level}</p>
+                                            <p className="text-xs text-gray-500">{t("orgReport.stepLabel")} {item.order} · {item.level}</p>
                                             <p className="text-sm font-medium text-[#2E6347]">{item.name}</p>
                                         </div>
                                     ))}

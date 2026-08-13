@@ -3,8 +3,10 @@
 import { Suspense } from "react";
 import PreviewForms from "@/app/components/preview-forms/preview-forms";
 import { useSearchParams } from "next/navigation";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 function ZoomOutContent() {
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const organizationId = searchParams.get("organizationId");
 
@@ -14,13 +16,12 @@ function ZoomOutContent() {
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-[#2E6347]">Zoom Out</h1>
                     <p className="mt-2 text-lg  text-black">
-                        Fuerzas externas que ejercen presión positiva o negativa sobre el modelo de negocio. 
-                        <br /> Analizarlas permite anticipar riesgos, aprovechar oportunidades 
-                        y adaptar la estrategia digital de la organización.
+                        {t("zoomOutPage.consultantDesc")}
+                        <br /> {t("zoomOutPage.consultantDesc2")}
                     </p>
                     {organizationId ? (
                         <p className="mt-2 text-sm text-gray-600">
-                            Diagnosing selected organization ID: {organizationId}
+                            {t("zoomPage.diagnosingOrg")} {organizationId}
                         </p>
                     ) : null}
                 </div>
@@ -32,8 +33,9 @@ function ZoomOutContent() {
 }
 
 export default function ZoomOutPage() {
+    const { t } = useLanguage();
     return (
-        <Suspense fallback={<div className="max-w-7xl mx-auto py-8 px-4 text-gray-500">Loading...</div>}>
+        <Suspense fallback={<div className="max-w-7xl mx-auto py-8 px-4 text-gray-500">{t("common.loading")}</div>}>
             <ZoomOutContent />
         </Suspense>
     );

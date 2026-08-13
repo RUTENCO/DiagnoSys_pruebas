@@ -4,6 +4,7 @@ import UserInfo from "@/app/components/molecules/userInfo";
 import { Button } from "@/components/ui/button"
 import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react"
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type UserCardProps = {
   name: string;
@@ -13,6 +14,7 @@ type UserCardProps = {
 };
 
 export default function UserCard({ name,gmail, role, avatar }: UserCardProps) {
+  const { t } = useLanguage();
   return (
     <div className="mt-auto pt-4 green border-t  flex flex-col items-center gap-4">
       <div className="w-full max-w-sm  rounded-2xl p-2 ">
@@ -24,7 +26,7 @@ export default function UserCard({ name,gmail, role, avatar }: UserCardProps) {
         className="flex items-center gap-2 cursor-pointer"
       >
         <LogOut className="h-5 w-5 text-white" />
-        Cerrar sesión
+        {t("common.logout")}
     </Button>
     </div>
 

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import TargetForm from "@/app/components/targetForm";
 import TargetForm2 from "@/app/components/targetForm2";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Category = {
   id: number;
@@ -31,6 +32,7 @@ type Form = {
 };
 
 export default function AdminZoomInPage() {
+  const { t } = useLanguage();
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,17 +65,17 @@ export default function AdminZoomInPage() {
                 }
               })));
             } else {
-              setError(formsData.error || "Error al cargar formularios");
+              setError(formsData.error || t("zoomInPage.loadFormsError"));
             }
           } else {
-            setError("Módulo Zoom In no encontrado");
+            setError(t("zoomInPage.moduleNotFound"));
           }
         } else {
-          setError(modulesData.error || "Error al cargar módulos");
+          setError(modulesData.error || t("zoomInPage.loadModulesError"));
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Error de conexión");
+        setError(t("zoomInPage.connectionError"));
       } finally {
         setLoading(false);
       }
@@ -86,9 +88,9 @@ export default function AdminZoomInPage() {
       <div className="max-h-screen w-full">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom In</h1>
+            <h1 className="text-3xl font-bold text-[#2E6347]">{t("zoomInPage.adminTitle")}</h1>
             <p className="mt-2 text-lg text-black">
-              Gestiona los conjuntos de habilidades individuales necesarias para operar en entornos digitales.
+              {t("zoomInPage.adminDesc")}
             </p>
           </div>
 
@@ -105,7 +107,7 @@ export default function AdminZoomInPage() {
             ))}
           </div>
 
-          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
+          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">{t("zoomInPage.formsHeading")}</h2>
 
           {/* Skeleton para los formularios */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 justify-center">
@@ -165,9 +167,9 @@ export default function AdminZoomInPage() {
     <div className="max-h-screen w-full">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom In</h1>
+          <h1 className="text-3xl font-bold text-[#2E6347]">{t("zoomInPage.adminTitle")}</h1>
           <p className="mt-2 text-lg  text-black">
-            Gestiona los formularios de habilidades individuales necesarias para operar en entornos digitales.
+            {t("zoomInPage.adminDesc")}
           </p> 
         </div>
 
@@ -178,17 +180,17 @@ export default function AdminZoomInPage() {
         itemsCount={totalItems}
       />
 
-      <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
+      <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">{t("zoomInPage.formsHeading")}</h2>
 
       <div className="grid lg:grid-cols-2 grid-cols-1 gap-6 justify-center">
         {forms.length === 0 ? (
-          <p className="text-gray-500">No hay formularios disponibles.</p>
+          <p className="text-gray-500">{t("zoomInPage.noForms")}</p>
         ) : (
           forms.map((form) => (
             <TargetForm2
               key={form.id}
               title={form.name}
-              description={form.description || "Sin descripción"}
+              description={form.description || t("common.noDescription")}
               publicF={form.isPublished}
               categorieNumber={form._count?.categories || 0}
               itemNumber={

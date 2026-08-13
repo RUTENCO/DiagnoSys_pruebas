@@ -1,12 +1,22 @@
+"use client";
+
+import LanguageSwitcher from "@/app/components/LanguageSwitcher";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+
 export default function AuthLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    const { t } = useLanguage();
     return (
         <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
             {/* Nuevo div para el fondo GIF */}
             <div className="absolute inset-0 background-gif"></div>
+
+            <div className="absolute top-4 right-4 z-20">
+                <LanguageSwitcher />
+            </div>
 
             <div className="relative z-10 w-full max-w-7xl mx-auto px-6 py-8 lg:py-12">
                 <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
@@ -14,40 +24,40 @@ export default function AuthLayout({
                     <div className="space-y-8 text-center lg:text-left">
                         <div className="space-y-4">
                             <h1 className="text-4xl lg:text-6xl font-bold text-emerald-900 tracking-tight leading-tight">
-                                DiagnoSys
+                                {t("app.title")}
                             </h1>
                             <p className="text-lg lg:text-2xl font-medium text-teal-700 leading-relaxed">
-                                Tu guía para el diagnóstico de transformación digital
+                                {t("app.tagline")}
                             </p>
                         </div>
                         <div className="space-y-6">
                             <p className="text-base lg:text-lg text-black leading-relaxed max-w-2xl">
-                                DiagnoSys es la plataforma web que guía a las organizaciones a través de un proceso estructurado para evaluar su preparación para la transformación digital. Comprende para transformar con propósito.
+                                {t("app.description1")}
                             </p>
                             
                             <p className="text-base lg:text-lg text-black leading-relaxed max-w-2xl">
-                                Nuestra herramienta te ayuda a mapear capacidades, identificar fuerzas del entorno, priorizar iniciativas estratégicas y generar un plan de acción visual, todo en cinco etapas simples: Zoom In, Zoom Out, Categorización, Priorización y Reporte.
+                                {t("app.description2")}
                             </p>
                         </div>
                         <div className="space-y-4">
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">Proceso guiado de 5 etapas</span> para un diagnóstico integral y estratégico
+                                    <span className="font-semibold">{t("app.feature1")}</span> {t("app.feature1Desc")}
                                 </p>
                             </div>
                             
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">Interfaz 100% configurable</span> que se adapta a tu sector y contexto
+                                    <span className="font-semibold">{t("app.feature2")}</span> {t("app.feature2Desc")}
                                 </p>
                             </div>
                             
                             <div className="flex items-start gap-4 text-left">
                                 <div className="w-2 h-2 rounded-full bg-cyan-500 mt-2.5 flex-shrink-0" />
                                 <p className="text-sm lg:text-base text-black leading-relaxed">
-                                    <span className="font-semibold">Reporte visual y automatizado</span> listo para la toma de decisiones
+                                    <span className="font-semibold">{t("app.feature3")}</span> {t("app.feature3Desc")}
                                 </p>
                             </div>
                         </div>

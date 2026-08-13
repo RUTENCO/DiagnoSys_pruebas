@@ -3,6 +3,7 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import FormHeader from "@/app/components/edit-forms/FormHeader";
 import CategoryEditor from "@/app/components/edit-forms/CategoryEditor";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Item = {
   id: number;
@@ -30,6 +31,7 @@ interface PageProps {
 export default function EditFormPage({ params }: PageProps) {
   const { formId } = use(params);
   const router = useRouter();
+  const { t } = useLanguage();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<CategoryState[]>([]);
@@ -78,11 +80,11 @@ export default function EditFormPage({ params }: PageProps) {
         }, 2000);
       } else {
         console.error("❌ Error saving form:", data.error);
-        alert(`Error: ${data.error || 'No se pudieron guardar los cambios'}`);
+        alert(`Error: ${data.error || t("editForm.saveError")}`);
       }
     } catch (error) {
       console.error("❌ Network error saving form:", error);
-      alert("Error de conexión al guardar el formulario");
+      alert(t("editForm.connectionError"));
     } finally {
       setSaving(false);
     }
@@ -132,14 +134,14 @@ export default function EditFormPage({ params }: PageProps) {
             onClick={handleCancel}
             className="px-6 py-3 bg-gray-100 text-neutral-900 rounded-lg hover:bg-gray-200 transition-all cursor-pointer border border-gray-300"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="px-6 py-3 bg-[#2E6347] text-white rounded-lg hover:bg-[#265239] transition-all cursor-pointer disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("common.saving") : t("editForm.saveChanges")}
           </button>
         </div>
       </div>
@@ -148,8 +150,8 @@ export default function EditFormPage({ params }: PageProps) {
       {showSaveModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="green-interactive p-8 rounded-xl shadow-2xl text-center max-w-md mx-4">
-            <h3 className="text-2xl font-bold text-[#2E6347] mb-2">Success!</h3>
-            <p className="text-black opacity-90">The changes have been saved successfully</p>
+            <h3 className="text-2xl font-bold text-[#2E6347] mb-2">{t("editForm.successTitle")}</h3>
+            <p className="text-black opacity-90">{t("editForm.successMessage")}</p>
           </div>
         </div>
       )}

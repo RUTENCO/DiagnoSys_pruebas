@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type ConfirmationPopupProps = {
   open: boolean;
@@ -17,12 +18,13 @@ export default function ConfirmationPopup({
   open,
   title,
   message,
-  confirmLabel = "Confirmar",
-  cancelLabel = "Cancelar",
+  confirmLabel,
+  cancelLabel,
   confirmTone = "default",
   onConfirm,
   onCancel,
 }: Readonly<ConfirmationPopupProps>) {
+  const { t } = useLanguage();
   if (!open) {
     return null;
   }
@@ -35,7 +37,7 @@ export default function ConfirmationPopup({
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
-            {cancelLabel}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
             type="button"

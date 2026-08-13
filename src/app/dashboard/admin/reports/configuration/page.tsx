@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_REPORT_DISPLAY_CONFIG, type ReportDisplayConfigPayload } from "@/lib/report-config";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type OrganizationOption = {
   id: number;
@@ -20,6 +21,7 @@ type ConfigResponse = {
 };
 
 export default function AdminReportConfigurationPage() {
+  const { t } = useLanguage();
   const { status, data: session } = useSession();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function AdminReportConfigurationPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error("error" in data ? data.error : "No se pudo cargar la configuración");
+        throw new Error("error" in data ? data.error : t("reportConfig.errorLoadConfig"));
       }
 
       const typedData = data as ConfigResponse;
@@ -62,7 +64,7 @@ export default function AdminReportConfigurationPage() {
       setOrganizationUserId(typedData.selectedOrganizationId);
       setConfig(typedData.config);
     } catch (fetchError) {
-      setError(fetchError instanceof Error ? fetchError.message : "Error cargando configuración");
+      setError(fetchError instanceof Error ? fetchError.message : t("reportConfig.errorLoadConfigGeneric"));
     } finally {
       if (silent) {
         setSwitchingOrganization(false);
@@ -84,21 +86,21 @@ export default function AdminReportConfigurationPage() {
     setUploadingImage(true);
 
     if (!organizationUserId) {
-      setError(isOrganizationMode ? "No se pudo identificar tu organización" : "Selecciona una organización primero");
+      setError(isOrganizationMode ? t("reportConfig.errorNoOrgOrg") : t("reportConfig.errorNoOrgAdmin"));
       setUploadingImage(false);
       return;
     }
 
     // Validar tipo de archivo
     if (!['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'].includes(file.type)) {
-      setError('Formato no permitido. Usa PNG, JPEG o SVG');
+      setError(t("reportConfig.errorInvalidFormat"));
       setUploadingImage(false);
       return;
     }
 
     // Validar tamaño
     if (file.size > 2 * 1024 * 1024) {
-      setError('Archivo demasiado grande (máximo 2MB)');
+      setError(t("reportConfig.errorFileTooBig"));
       setUploadingImage(false);
       return;
     }
@@ -125,7 +127,7 @@ export default function AdminReportConfigurationPage() {
           console.log('Upload response:', { status: res.status, data });
           
           if (!res.ok) {
-            setError(data?.error || 'Error al subir la imagen');
+            setError(data?.error || t("reportConfig.errorUploadImage"));
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
           }
@@ -134,12 +136,12 @@ export default function AdminReportConfigurationPage() {
           
           // Actualizar estado local con la nueva URL
           setConfig((prev) => ({ ...prev, logoUrl: data.url }));
-          setMessage('Imagen subida correctamente');
+          setMessage(t("reportConfig.imageUploadedSuccess"));
           
           // No hacer PUT automático - solo guardar cuando el usuario presione el botón
           
         } catch (err) {
-          setError('Error al procesar la imagen');
+          setError(t("reportConfig.errorProcessImage"));
           console.error(err);
         } finally {
           // Resetear el input file después de procesar
@@ -151,7 +153,7 @@ export default function AdminReportConfigurationPage() {
       };
 
       reader.onerror = () => {
-        setError('Error al leer el archivo');
+        setError(t("reportConfig.errorReadFile"));
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -160,7 +162,7 @@ export default function AdminReportConfigurationPage() {
 
       reader.readAsDataURL(file);
     } catch (err) {
-      setError('Error inesperado al subir la imagen');
+      setError(t("reportConfig.errorUnexpectedUpload"));
       console.error(err);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -185,7 +187,7 @@ export default function AdminReportConfigurationPage() {
 
   const handleSave = async () => {
     if (!organizationUserId) {
-      setError(isOrganizationMode ? "No se pudo identificar tu organización" : "Selecciona una organización");
+      setError(isOrganizationMode ? t("reportConfig.errorNoOrgOrg") : t("reportConfig.errorSelectOrg"));
       return;
     }
 
@@ -202,56 +204,54 @@ export default function AdminReportConfigurationPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || "No se pudo guardar la configuración");
+        throw new Error(data?.error || t("reportConfig.errorSaveConfig"));
       }
 
-      setMessage(data.message || "Configuración almacenada correctamente");
+      setMessage(data.message || t("reportConfig.savedSuccess"));
       setConfig(data.config ?? config);
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Error guardando configuración");
+      setError(saveError instanceof Error ? saveError.message : t("reportConfig.errorSaveConfigGeneric"));
     } finally {
       setSaving(false);
     }
   };
 
   if (status === "loading" || initialLoading) {
-    return <div className="p-6">Cargando configuración de informe...</div>;
+    return <div className="p-6">{t("reportConfig.loading")}</div>;
   }
 
   if (status !== "authenticated") {
-    return <div className="p-6">Debes iniciar sesión para acceder a esta configuración.</div>;
+    return <div className="p-6">{t("reportConfig.mustLogin")}</div>;
   }
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold text-[#2E6347] mb-2">
-        {isOrganizationMode ? "Configuración de mi reporte" : "Configuración de Informe Final"}
+        {isOrganizationMode ? t("reportConfig.titleOrg") : t("reportConfig.title")}
       </h1>
       <p className="text-gray-700 mb-6">
-        {isOrganizationMode
-          ? "Personaliza los criterios de visualización y el formato institucional de tu organización."
-          : "Personaliza criterios de visualización y formato institucional para cada organización."}
+        {isOrganizationMode ? t("reportConfig.subtitleOrg") : t("reportConfig.subtitle")}
       </p>
 
       <div className="green-interactive rounded-xl border border-emerald-200 p-6 mb-6 space-y-4">
         {switchingOrganization && (
           <div className="text-sm text-[#2E6347] bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
-            Cambiando organización...
+            {t("reportConfig.switchingOrg")}
           </div>
         )}
         {isOrganizationMode ? (
           <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-[#2E6347]">
             {selectedOrg ? (
               <>
-                Configurando tu organización: <strong>{selectedOrg.name}</strong>
+                {t("reportConfig.configuringYourOrg")} <strong>{selectedOrg.name}</strong>
               </>
             ) : (
-              "Configurando tu organización"
+              t("reportConfig.configuringOrgFallback")
             )}
           </div>
         ) : (
           <>
-            <p className="block text-sm font-semibold text-[#2E6347]">Organización</p>
+            <p className="block text-sm font-semibold text-[#2E6347]">{t("reportConfig.organization")}</p>
             <select
               id="organization-select"
               className="w-full border rounded-md px-3 py-2"
@@ -265,7 +265,7 @@ export default function AdminReportConfigurationPage() {
                 }
               }}
             >
-              <option value="">Seleccionar organización</option>
+              <option value="">{t("reportConfig.selectOrganization")}</option>
               {organizations.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.name} ({org.email})
@@ -278,19 +278,19 @@ export default function AdminReportConfigurationPage() {
 
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 transition-opacity duration-200 ${switchingOrganization ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
         <section className="green-interactive rounded-xl border border-emerald-200 p-6 space-y-3">
-          <h2 className="text-xl font-semibold text-[#2E6347]">Criterios de visualización</h2>
-          <ToggleRow label="Resumen ejecutivo" enabled={config.showExecutiveSummary} onToggle={() => handleToggle("showExecutiveSummary")} />
-          <ToggleRow label="Radar Zoom In/Zoom Out" enabled={config.showRadar} onToggle={() => handleToggle("showRadar")} />
-          <ToggleRow label="Categorización (O/N/P)" enabled={config.showCategorization} onToggle={() => handleToggle("showCategorization")} />
-          <ToggleRow label="Priorización" enabled={config.showPrioritization} onToggle={() => handleToggle("showPrioritization")} />
-          <ToggleRow label="Plan de acción" enabled={config.showActionPlan} onToggle={() => handleToggle("showActionPlan")} />
+          <h2 className="text-xl font-semibold text-[#2E6347]">{t("reportConfig.visualizationCriteria")}</h2>
+          <ToggleRow label={t("reportConfig.executiveSummary")} enabled={config.showExecutiveSummary} onToggle={() => handleToggle("showExecutiveSummary")} />
+          <ToggleRow label={t("reportConfig.radarZoom")} enabled={config.showRadar} onToggle={() => handleToggle("showRadar")} />
+          <ToggleRow label={t("reportConfig.categorization")} enabled={config.showCategorization} onToggle={() => handleToggle("showCategorization")} />
+          <ToggleRow label={t("reportConfig.prioritization")} enabled={config.showPrioritization} onToggle={() => handleToggle("showPrioritization")} />
+          <ToggleRow label={t("reportConfig.actionPlan")} enabled={config.showActionPlan} onToggle={() => handleToggle("showActionPlan")} />
           {/* Escala visible eliminada por defecto */}
         </section>
 
         <section className="green-interactive rounded-xl border border-emerald-200 p-6 space-y-3">
-          <h2 className="text-xl font-semibold text-[#2E6347]">Formato institucional</h2>
+          <h2 className="text-xl font-semibold text-[#2E6347]">{t("reportConfig.institutionalFormat")}</h2>
           <div className="flex flex-col items-center text-center gap-3">
-            <p className="block text-sm font-semibold">Logotipo</p>
+            <p className="block text-sm font-semibold">{t("reportConfig.logo")}</p>
             <input
               id="logo-upload"
               ref={fileInputRef}
@@ -312,9 +312,9 @@ export default function AdminReportConfigurationPage() {
                 }
               }}
             >
-              {uploadingImage ? 'Subiendo...' : (config.logoUrl ? 'Cambiar imagen' : 'Subir imagen')}
+              {uploadingImage ? t("reportConfig.uploading") : (config.logoUrl ? t("reportConfig.changeImage") : t("reportConfig.uploadImage"))}
             </Button>
-            {uploadingImage && <p className="text-sm text-gray-600">Subiendo imagen...</p>}
+            {uploadingImage && <p className="text-sm text-gray-600">{t("reportConfig.uploadingImage")}</p>}
             {config.logoUrl && (
               <div className="mt-2 flex flex-col items-center gap-2 w-full">
                 <div className="p-2 border border-emerald-300 rounded-md bg-emerald-50">
@@ -327,50 +327,50 @@ export default function AdminReportConfigurationPage() {
                     unoptimized
                   />
                 </div>
-                <p className="text-xs text-gray-600">Vista previa del logotipo</p>
+                <p className="text-xs text-gray-600">{t("reportConfig.logoPreview")}</p>
               </div>
             )}
           </div>
           <div className="space-y-2">
-            <p className="block text-sm font-semibold text-[#2E6347]">Título para el PDF</p>
+            <p className="block text-sm font-semibold text-[#2E6347]">{t("reportConfig.pdfTitle")}</p>
             <input
               id="pdf-title"
               className="w-full border rounded-md px-3 py-2"
               value={config.headerTitle}
               onChange={(e) => setConfig((prev) => ({ ...prev, headerTitle: e.target.value }))}
-              placeholder="Título para el PDF"
+              placeholder={t("reportConfig.pdfTitle")}
             />
           </div>
           <div className="space-y-2">
-            <p className="block text-sm font-semibold text-[#2E6347]">Título Página Reporte</p>
+            <p className="block text-sm font-semibold text-[#2E6347]">{t("reportConfig.reportPageTitle")}</p>
             <input
               id="report-page-title"
               className="w-full border rounded-md px-3 py-2"
               value={config.headerSubtitle ?? ""}
               onChange={(e) => setConfig((prev) => ({ ...prev, headerSubtitle: e.target.value || null }))}
-              placeholder="Título Página Reporte"
+              placeholder={t("reportConfig.reportPageTitle")}
             />
           </div>
           <div className="grid grid-cols-2 gap-3 items-end">
             <label className="text-sm text-gray-700 flex items-center gap-3">
-              <div>Color títulos</div>
+              <div>{t("reportConfig.titleColor")}</div>
               <input
                 type="color"
                 value={(config.titleColor as string) ?? '#000000'}
                 onChange={(e) => setConfig((prev) => ({ ...prev, titleColor: e.target.value }))}
                 className="h-10 w-10 p-0 border rounded"
-                title="Color para títulos"
+                title={t("reportConfig.titleColor")}
               />
             </label>
 
             <label className="text-sm text-gray-700 flex items-center gap-3">
-              <div>Color texto</div>
+              <div>{t("reportConfig.textColor")}</div>
               <input
                 type="color"
                 value={(config.textColor as string) ?? '#000000'}
                 onChange={(e) => setConfig((prev) => ({ ...prev, textColor: e.target.value }))}
                 className="h-10 w-10 p-0 border rounded"
-                title="Color para texto"
+                title={t("reportConfig.textColor")}
               />
             </label>
           </div>
@@ -383,7 +383,7 @@ export default function AdminReportConfigurationPage() {
           disabled={saving}
           className="bg-[#2E6347] hover:bg-[#24533b] text-white"
         >
-          {saving ? "Guardando..." : "Guardar configuración"}
+          {saving ? t("reportConfig.saving") : t("reportConfig.saveConfig")}
         </Button>
       </div>
 

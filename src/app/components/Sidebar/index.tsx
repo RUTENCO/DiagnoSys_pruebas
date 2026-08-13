@@ -16,8 +16,11 @@ import {
   Cross1Icon,
   PersonIcon,
 } from "@radix-ui/react-icons";
+import LanguageSwitcher from "@/app/components/LanguageSwitcher";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export default function Sidebar() {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
@@ -116,28 +119,28 @@ export default function Sidebar() {
 
   // Definir los enlaces comunes para todos los roles
   const links = [
-    { href: "/dashboard", label: "Inicio", icon: <HomeIcon /> },
+    { href: "/dashboard", label: t("nav.home"), icon: <HomeIcon /> },
   ];
 
   // Define el menú para cada rol
   const roleBasedLinks = {
     admin: [
-      { href: "/dashboard/admin/zoom-in", label: "Zoom-in", icon: <ZoomInIcon /> },
-      { href: "/dashboard/admin/zoom-out", label: "Zoom-out", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/admin/categorization", label: "Categorización", icon: <LayoutIcon /> },
-      { href: "/dashboard/admin/prioritization", label: "Priorización", icon: <ListBulletIcon /> },
-      { href: "/dashboard/admin/reports", label: "Reportes", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/admin/users", label: "Usuarios", icon: <PersonIcon /> },
+      { href: "/dashboard/admin/zoom-in", label: t("nav.zoomIn"), icon: <ZoomInIcon /> },
+      { href: "/dashboard/admin/zoom-out", label: t("nav.zoomOut"), icon: <ZoomOutIcon /> },
+      { href: "/dashboard/admin/categorization", label: t("nav.categorization"), icon: <LayoutIcon /> },
+      { href: "/dashboard/admin/prioritization", label: t("nav.prioritization"), icon: <ListBulletIcon /> },
+      { href: "/dashboard/admin/reports", label: t("nav.reports"), icon: <ZoomOutIcon /> },
+      { href: "/dashboard/admin/users", label: t("nav.users"), icon: <PersonIcon /> },
     ],
     consultant: [
-      { href: "/dashboard", label: "Inicio", icon: <HomeIcon /> },
-      { href: "/dashboard/consultant/organizations", label: "Organizaciones", icon: <LayoutIcon /> },
-      { href: "/dashboard/consultant/reports", label: "Reportes", icon: <ZoomOutIcon /> },
-      { href: "/dashboard/consultant/reports/configuration", label: "Configurar reporte", icon: <TbReport /> },
+      { href: "/dashboard", label: t("nav.home"), icon: <HomeIcon /> },
+      { href: "/dashboard/consultant/organizations", label: t("nav.organizations"), icon: <LayoutIcon /> },
+      { href: "/dashboard/consultant/reports", label: t("nav.reports"), icon: <ZoomOutIcon /> },
+      { href: "/dashboard/consultant/reports/configuration", label: t("nav.configureReport"), icon: <TbReport /> },
     ],
     organization: [
-      { href: "/dashboard/organization/report", label: "Reporte", icon: <TbReport /> },
-      { href: "/dashboard/organization/report/configuration", label: "Configurar reporte", icon: <TbReport /> },
+      { href: "/dashboard/organization/report", label: t("nav.report"), icon: <TbReport /> },
+      { href: "/dashboard/organization/report/configuration", label: t("nav.configureReport"), icon: <TbReport /> },
     ],
   };
 
@@ -219,7 +222,7 @@ export default function Sidebar() {
           onClick={() => setIsDesktopSidebarOpen(true)}
         >
           <HamburgerMenuIcon className="h-4 w-4" />
-          Mostrar menú
+          {t("nav.showMenu")}
         </button>
       )}
 
@@ -228,20 +231,23 @@ export default function Sidebar() {
         className={`pb-20 md:pb-5 fixed top-0 left-0 h-screen w-64 shadow-lg p-4 z-40 pt-16 md:pt-3 transform transition-all duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:static md:translate-x-0 md:overflow-hidden flex flex-col ${isDesktopSidebarOpen ? "md:w-64 md:p-4" : "md:w-0 md:p-0 md:border-0"}`}
       >
         <div className="absolute inset-0 green"></div>
-        <div className="relative z-10 flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-primary">Menu</h2>
+        <div className="relative z-10 flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-primary">{t("nav.menu")}</h2>
           <button
             type="button"
             className="cursor-pointer hidden md:inline-flex items-center rounded-md border border-primary/20 bg-white/80 px-2 py-1 text-xs font-medium text-primary hover:bg-white"
             onClick={() => setIsDesktopSidebarOpen(false)}
           >
-            Ocultar
+            {t("nav.hide")}
           </button>
+        </div>
+        <div className="relative z-10 mb-4">
+          <LanguageSwitcher />
         </div>
 
         {userRole === "consultant" && isConsultantDiagnosticsMode ? (
           <div className="relative z-10 mb-4 rounded-md border-2 border-white green-interactive p-3">
-            <p className="text-xs uppercase tracking-wide text-gray-900">Organización seleccionada</p>
+            <p className="text-xs uppercase tracking-wide text-gray-900">{t("nav.selectedOrganization")}</p>
             <p className="mt-1 font-bold text-primary truncate">
               {resolvedOrganizationName || `Organización #${selectedOrganizationId}`}
             </p>
@@ -253,7 +259,7 @@ export default function Sidebar() {
                 router.push("/dashboard/consultant/organizations");
               }}
             >
-              Volver a mi perfil de consultor
+              {t("nav.backToConsultantProfile")}
             </button>
           </div>
         ) : null}
@@ -278,11 +284,11 @@ export default function Sidebar() {
         {/* Card al final */}
         <div className="relative z-10">
           <UserCard
-            name={session?.user?.name || "Invitado"}
+            name={session?.user?.name || t("nav.guest")}
             role={
               typeof session?.user?.role === "string"
                 ? session.user.role
-                : session?.user?.role?.displayName || session?.user?.role?.name || "Invitado"
+                : session?.user?.role?.displayName || session?.user?.role?.name || t("nav.guest")
             }
             gmail={session?.user?.email || ""}
             avatar={avatarUrl}
@@ -294,7 +300,7 @@ export default function Sidebar() {
       {isOpen && (
         <button
           type="button"
-          aria-label="Cerrar menú lateral"
+          aria-label={t("nav.closeSidebar")}
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={() => setIsOpen(false)}
         />

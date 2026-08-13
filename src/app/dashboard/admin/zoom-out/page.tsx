@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import TargetForm from "@/app/components/targetForm";
 import TargetForm2 from "@/app/components/targetForm2";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type Category = {
   id: number;
@@ -31,6 +32,7 @@ type Form = {
 };
 
 export default function AdminZoomOutPage() {
+  const { t } = useLanguage();
   const [forms, setForms] = useState<Form[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,17 +65,17 @@ export default function AdminZoomOutPage() {
                 }
               })));
             } else {
-              setError(formsData.error || "Error al cargar formularios");
+              setError(formsData.error || t("zoomInPage.loadFormsError"));
             }
           } else {
-            setError("Módulo Zoom Out no encontrado");
+            setError(t("zoomOutPage.moduleNotFound"));
           }
         } else {
-          setError(modulesData.error || "Error al cargar módulos");
+          setError(modulesData.error || t("zoomInPage.loadModulesError"));
         }
       } catch (err) {
         console.error("Fetch error:", err);
-        setError("Error de conexión");
+        setError(t("zoomInPage.connectionError"));
       } finally {
         setLoading(false);
       }
@@ -86,10 +88,10 @@ export default function AdminZoomOutPage() {
       <div className="max-h-screen w-full">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom Out</h1>
+            <h1 className="text-3xl font-bold text-[#2E6347]">{t("zoomOutPage.adminTitle")}</h1>
             <p className="mt-2 text-lg text-black">
-              Gestiona los formularios para identificar fuerzas externas que ejercen presión positiva o negativa sobre el modelo de negocio.
-              <br /> Analizarlas permite anticipar riesgos, aprovechar oportunidades y adaptar la estrategia digital de la organización.
+              {t("zoomOutPage.adminDesc")}
+              <br /> {t("zoomOutPage.consultantDesc2")}
             </p>
           </div>
 
@@ -106,7 +108,7 @@ export default function AdminZoomOutPage() {
             ))}
           </div>
 
-          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
+          <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">{t("zoomInPage.formsHeading")}</h2>
 
           {/* Skeleton para los formularios */}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(350px,1fr))] gap-6 justify-center">
@@ -166,10 +168,10 @@ export default function AdminZoomOutPage() {
     <div className="max-h-screen w-full">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#2E6347]">Admin - Zoom Out</h1>
+          <h1 className="text-3xl font-bold text-[#2E6347]">{t("zoomOutPage.adminTitle")}</h1>
           <p className="mt-2 text-lg  text-black">
-            Gestiona los formularios para identificar fuerzas externas que ejercen presión positiva o negativa sobre el modelo de negocio.
-            <br /> Analizarlas permite anticipar riesgos, aprovechar oportunidades y adaptar la estrategia digital de la organización.
+            {t("zoomOutPage.adminDesc")}
+            <br /> {t("zoomOutPage.consultantDesc2")}
           </p>
         </div>
 
@@ -180,14 +182,14 @@ export default function AdminZoomOutPage() {
           itemsCount={totalItems}
         />
 
-        <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">Formularios</h2>
+        <h2 className="text-2xl font-bold mb-4 pt-20 text-[#2E6347]">{t("zoomInPage.formsHeading")}</h2>
 
         <div className="grid lg:grid-cols-2 grid-cols-1 gap-6 justify-center">
           {forms.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No hay formularios disponibles.</p>
+              <p className="text-gray-500">{t("zoomInPage.noForms")}</p>
               <p className="text-sm text-gray-400 mt-2">
-                Los formularios aparecerán aquí una vez que sean creados en el módulo Zoom Out.
+                {t("zoomOutPage.noFormsHint")}
               </p>
             </div>
           ) : (
@@ -195,7 +197,7 @@ export default function AdminZoomOutPage() {
               <TargetForm2
                 key={form.id}
                 title={form.name}
-                description={form.description || "Sin descripción"}
+                description={form.description || t("common.noDescription")}
                 publicF={form.isPublished}
                 categorieNumber={form.categories?.length || 0}
                 itemNumber={

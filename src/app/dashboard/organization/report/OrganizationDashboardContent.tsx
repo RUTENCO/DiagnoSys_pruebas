@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ConfirmationPopup from "@/app/components/ConfirmationPopup";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 interface ReportStats {
     totalForms: number;
@@ -41,6 +42,7 @@ interface ApiResponse {
 }
 
 export default function OrganizationDashboardContent() {
+    const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { status } = useSession();
@@ -175,7 +177,7 @@ export default function OrganizationDashboardContent() {
                     variant="outline"
                     className="bg-green-200 text-black border-green-800 whitespace-nowrap"
                 >
-                    Completado
+                    {t("orgDashboard.statusCompleted")}
                 </Badge>
             );
         } else if (isReportInProgress(report)) {
@@ -184,7 +186,7 @@ export default function OrganizationDashboardContent() {
                     variant="outline"
                     className="bg-orange-200 text-black border-orange-800 whitespace-nowrap"
                 >
-                    En progreso
+                    {t("orgDashboard.statusInProgress")}
                 </Badge>
             );
         } else {
@@ -193,7 +195,7 @@ export default function OrganizationDashboardContent() {
                     variant="outline"
                     className="bg-yellow-200 text-black border-yellow-500 whitespace-nowrap"
                 >
-                    No iniciado 
+                    {t("orgDashboard.statusNotStarted")}
                 </Badge>
             );
         }
@@ -204,7 +206,7 @@ export default function OrganizationDashboardContent() {
             <div className="flex items-center justify-center min-h-screen">
                 <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Cargando reportes...</span>
+                    <span>{t("common.loading")}</span>
                 </div>
             </div>
         );
@@ -214,10 +216,10 @@ export default function OrganizationDashboardContent() {
         <div className="container mx-auto px-4 py-8">
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-primary mb-2">
-                    Reportes de Evaluación Digital
+                    {t("reportsPage.title")}
                 </h1>
                 <p className="text-black mt-5">
-                    Crea y gestiona tus reportes de evaluación de madurez digital
+                    {t("orgDashboard.subtitle")}
                 </p>
             </div>
 
@@ -226,21 +228,21 @@ export default function OrganizationDashboardContent() {
                     <DialogTrigger asChild>
                         <Button className="default">
                             <Plus className="h-4 w-4 mr-2" />
-                            Crear Nuevo Reporte
+                            {t("orgDashboard.createNew")}
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="green-interactive ">
                         <DialogHeader>
-                            <DialogTitle>Crear Nuevo Reporte</DialogTitle>
+                            <DialogTitle>{t("orgDashboard.createNew")}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4">
                             <div>
-                                <Label className="mt-4" htmlFor="reportName">Nombre del reporte</Label>
+                                <Label className="mt-4" htmlFor="reportName">{t("orgDashboard.reportNameLabel")}</Label>
                                 <Input
                                     id="reportName"
                                     value={newReportName}
                                     onChange={(e) => setNewReportName(e.target.value)}
-                                    placeholder="Ingresa el nombre del reporte..."
+                                    placeholder={t("orgDashboard.reportNamePlaceholder")}
                                     className="mt-1"
                                 />
                             </div>
@@ -251,7 +253,7 @@ export default function OrganizationDashboardContent() {
                                     disabled={creating}
                                     className="w-auto"
                                 >
-                                    Cancelar
+                                    {t("common.cancel")}
                                 </Button>
                                 <Button
                                     variant="default"
@@ -260,7 +262,7 @@ export default function OrganizationDashboardContent() {
                                     className="w-auto"
                                 >
                                     {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                                    Crear Reporte
+                                    {t("orgDashboard.createButton")}
                                 </Button>
                             </div>
                         </div>
@@ -273,8 +275,8 @@ export default function OrganizationDashboardContent() {
                     <CardContent className="py-12 text-center">
                         <div className="text-gray-500 mb-4">
                             <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <h3 className="text-lg font-medium mb-2">Sin reportes aún</h3>
-                            <p>Crea tu primer reporte de evaluación de madurez digital para comenzar</p>
+                            <h3 className="text-lg font-medium mb-2">{t("orgDashboard.noReportsTitle")}</h3>
+                            <p>{t("orgDashboard.noReportsDesc")}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -303,7 +305,7 @@ export default function OrganizationDashboardContent() {
                             <CardContent>
                                 <div className="space-y-3 mb-4">
                                     <div className="flex justify-between text-sm">
-                                        <span className="font-normal">Progreso general</span>
+                                        <span className="font-normal">{t("orgDashboard.progressGeneral")}</span>
                                         <span className="font-medium">{report.stats.completionRate}%</span>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -328,15 +330,15 @@ export default function OrganizationDashboardContent() {
                                     </div>
                                     <div className="grid grid-cols-1 gap-2 text-sm">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-gray-800">Categorización</span>
+                                            <span className="text-gray-800">{t("nav.categorization")}</span>
                                             <span className={`font-medium ${report.stats.categorizationCompleted ? "text-green-800" : "text-amber-700"}`}>
-                                                {report.stats.categorizationCompleted ? "Completado" : "Pendiente"}
+                                                {report.stats.categorizationCompleted ? t("orgDashboard.statusCompleted") : t("orgDashboard.pending")}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span className="text-gray-800">Priorización</span>
+                                            <span className="text-gray-800">{t("nav.prioritization")}</span>
                                             <span className={`font-medium ${report.stats.prioritizationCompleted ? "text-green-800" : "text-amber-700"}`}>
-                                                {report.stats.prioritizationCompleted ? "Completado" : "Pendiente"}
+                                                {report.stats.prioritizationCompleted ? t("orgDashboard.statusCompleted") : t("orgDashboard.pending")}
                                             </span>
                                         </div>
                                     </div>
@@ -348,7 +350,7 @@ export default function OrganizationDashboardContent() {
                                         size="sm"
                                     >
                                         <PlayCircle className="h-4 w-4 mr-2 shrink-0" />
-                                        <span className="whitespace-nowrap">Iniciar</span>
+                                        <span className="whitespace-nowrap">{t("orgDashboard.start")}</span>
                                     </Button>
                                     {report.stats.completedForms > 0 && (
                                         <Button
@@ -358,7 +360,7 @@ export default function OrganizationDashboardContent() {
                                             className="w-full justify-center px-3 hover:bg-green-100 hover:text-green-900 border-gray-400 hover:border-green-900 transition-colors"
                                         >
                                             <Eye className="h-4 w-4 mr-2 shrink-0" />
-                                            <span className="whitespace-nowrap">Ver</span>
+                                            <span className="whitespace-nowrap">{t("orgDashboard.view")}</span>
                                         </Button>
                                     )}
                                     <Button
@@ -369,7 +371,7 @@ export default function OrganizationDashboardContent() {
                                         disabled={deletingReportId === report.id}
                                     >
                                         <Trash2 className="h-4 w-4 mr-2 shrink-0" />
-                                        <span className="whitespace-nowrap">{deletingReportId === report.id ? "Eliminando..." : "Eliminar"}</span>
+                                        <span className="whitespace-nowrap">{deletingReportId === report.id ? t("common.deleting") : t("common.delete")}</span>
                                     </Button>
                                 </div>
                             </CardContent>
@@ -380,10 +382,10 @@ export default function OrganizationDashboardContent() {
 
             <ConfirmationPopup
                 open={pendingRemoval !== null}
-                title="Eliminar reporte"
-                message="¿Quieres eliminar este reporte de tu lista?"
-                confirmLabel="Eliminar"
-                cancelLabel="Cancelar"
+                title={t("consultantReports.deleteReportTitle")}
+                message={t("consultantReports.deleteReportMessage")}
+                confirmLabel={t("common.delete")}
+                cancelLabel={t("common.cancel")}
                 confirmTone="destructive"
                 onConfirm={confirmDeleteReport}
                 onCancel={() => setPendingRemoval(null)}
