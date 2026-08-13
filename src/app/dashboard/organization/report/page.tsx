@@ -1,4 +1,6 @@
-﻿import { Suspense } from "react";
+﻿"use client";
+
+import { Suspense } from "react";
 import OrganizationDashboardContent from "./OrganizationDashboardContent";
 import { Loader2 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
